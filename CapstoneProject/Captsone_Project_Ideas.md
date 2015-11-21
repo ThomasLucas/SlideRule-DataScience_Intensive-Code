@@ -1,4 +1,4 @@
-# **Capstone Project Ideas ** #
+# Capstone Project Ideas #
 
 *Data Science Intensive Workshop - Thomas Lucas*
 
