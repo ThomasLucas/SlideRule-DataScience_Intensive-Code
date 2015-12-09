@@ -1,0 +1,274 @@
+######################################
+###          DATA STORY            ###
+######################################
+
+### Imports ###
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy.stats as sstats
+
+from pyechonest import config
+from pyechonest import song
+from pyechonest import artist
+
+### Functions creation ###
+
+# Creation of a list of integers corresponding to all the years we are interested in
+def create_years_list(start_year, end_year):
+    years = []
+    for i in range(start_year + 1, end_year + 1):
+        years.append(i)
+    return years
+
+# Creation of a global dataframe from the CSV files
+# This df has a new column named "year" to be able to do the filtering
+def create_billboard_df_from_CSV(start_year, years):
+    billboard_df = pd.read_csv('CSV_data/Billboard_Year-End_Hot_100_singles_of_' + str(start_year) + '.csv')
+    billboard_df['Year'] = pd.Series(start_year, index = billboard_df.index)
+
+    df_list = []
+    for year in years:
+        # Open CSV file
+        billboard_current_year = pd.read_csv('CSV_data/Billboard_Year-End_Hot_100_singles_of_' + str(year) + '.csv')
+        billboard_current_year['Year'] = pd.Series(year, index = billboard_current_year.index)
+        df_list.append(billboard_current_year)
+
+    # Creation of a big data frame containing all the data
+    return billboard_df.append(df_list, ignore_index = True)
+
+def create_tableau20_RGB_code():
+    # These are the "Tableau 20" colors as RGB + pale gray
+    tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
+                 (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
+                 (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),
+                 (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),
+                 (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229), (248,248,248)]
+
+    # Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.
+    for i in range(len(tableau20)):
+        r, g, b = tableau20[i]
+        tableau20[i] = (r / 255., g / 255., b / 255.)
+
+    return tableau20
+
+# graph_type is a string which can be {'Artist(s)', 'Title'}
+def create_stats_lists(graph_type, years, billboard_df):
+    if graph_type not in ['Artist(s)', 'Title']:
+        raise NameError('Incorrect value of parameter graph_type')
+
+    # Put the different values in lists as it is easier to plot
+    min_values = []
+    max_values = []
+    mean_values = []
+    number1_values = []
+    for year in years:
+        min_values.append(billboard_df[billboard_df["Year"] == year][graph_type].str.len().min())
+        max_values.append(billboard_df[billboard_df["Year"] == year][graph_type].str.len().max())
+        mean_values.append(billboard_df[billboard_df["Year"] == year][graph_type].str.len().mean())
+        number1_values.append(billboard_df[(billboard_df["Year"] == year) & (billboard_df["Num"] == 1)][graph_type].str.len().item())
+
+    return (min_values, max_values, mean_values, number1_values)
+
+def create_name_length_plot(graph_type, billboard_df, years, start_year, end_year,
+                     ylabel, plot_title, save_title_path, legend_loc):
+
+    tableau20 = create_tableau20_RGB_code()
+    min_values, max_values, mean_values, number1_values = create_stats_lists(graph_type, years, billboard_df)
+
+    # Plot size
+    plt.figure(figsize=(12, 9))
+
+    # Remove the plot frame lines
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Ensure that the axis ticks only show up on the bottom and left of the plot.
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+    # Limit the range of the plot to only where the data is.
+    plt.ylim(0, max(max_values) + 5)
+    plt.xlim(start_year - 2, end_year + 2)
+
+    # Make sure axis ticks are large enough to be easily read.
+    plt.xticks(range(start_year, end_year, 10), fontsize=14)
+    plt.yticks(range(0, max(max_values) + 5, 10), fontsize=14)
+
+    # Make sure axis labels are large enough to be easily read as well.
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Use matplotlib's fill_between() call to fill the area between the different lines
+    plt.fill_between(years, min_values, max_values, color = tableau20[len(tableau20) - 1])
+
+    # Plot the mean, min, max and number 1 values
+    plt.plot(years, mean_values, marker = 'o', linestyle = '--', color = tableau20[0], label = "mean")
+    plt.plot(years, min_values, marker = 'v', linestyle = '--', color = tableau20[2], label = "min")
+    plt.plot(years, max_values, marker = '^', linestyle = '--', color = tableau20[4], label = "max")
+    plt.plot(years, number1_values, '*', color = tableau20[6], label = "number1")
+
+    # Plot title
+    plt.title(plot_title, fontsize=22)
+
+    # Legend
+    plt.legend(loc=legend_loc)
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+def create_bar_chart_featurings(x, y, xlabel, ylabel, title, save_title_path, n1_list):
+    plt.figure(figsize=(12, 9))
+
+    # Axis properties
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    # Axis labels
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Plot title
+    plt.title(title, fontsize=22)
+
+    color_list = []
+    for value in x:
+        if value in n1_list:
+            color_list.append("#db8d51")
+        else:
+            color_list.append("#3F5D7D")
+
+    # Bar chart creation
+    plt.bar(x, y, color=color_list)
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+def create_entries_count_by_artist(billboard_df):
+    billboard_artists_series = billboard_df['Artist(s)']
+    featuring_mask = billboard_artists_series.str.contains("featuring")
+
+    billboard_df_temp = pd.DataFrame.copy(billboard_df)
+    billboard_df_temp.loc[:, "Lead Artist(s)"] = billboard_df['Artist(s)']
+
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" featuring ").str.get(0)
+
+    billboard_df_temp.loc[:, "Counts"] = billboard_df_temp.groupby('Lead Artist(s)')['Lead Artist(s)'].transform('count')
+    billboard_df_artist_count = pd.concat([billboard_df_temp['Lead Artist(s)'],
+                                           billboard_df_temp['Counts']], axis=1,
+                                          keys=['Lead Artist(s)', 'Counts'])
+
+    billboard_df_artist_count = billboard_df_artist_count.groupby('Lead Artist(s)').count().reset_index()
+    return billboard_df_artist_count.sort_values(['Counts'], ascending = 0)
+
+def create_histogram_nb_entries(counts_col, xlabel, ylabel, title, save_title_path):
+    plt.figure(figsize=(12, 9))
+
+    # Axis properties
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    # Axis labels
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Plot title
+    plt.title(title, fontsize=22)
+
+    n, bins, patches = plt.hist(counts_col, 10, normed=1, facecolor='green', alpha=0.5)
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+def create_cumulative_counts_df(billboard_df_artist_count):
+    counts_col = billboard_df_artist_count.sort_values(['Counts'], ascending = 0)["Counts"]
+    cumulative_count = []
+    temp = 0
+    for count in counts_col:
+        temp += count
+        cumulative_count.append(temp)
+
+    index = range(1, len(cumulative_count) + 1)
+    data = {"Index": index, "Cumulative Count": cumulative_count}
+    cumulative_count_df = pd.DataFrame(data, columns = ["Index", "Cumulative Count"])
+    return cumulative_count_df
+
+def plot_cumulative_distribution_function(cumulative_count_df, xlabel, ylabel, title, save_title_path):
+    plt.figure(figsize=(12, 9))
+
+    # Axis properties
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    # Axis labels
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Limit the range of the plot to only where the data is.
+    plt.ylim(0, max(cumulative_count_df["Cumulative Count"]) + 5)
+    plt.xlim(1, max(cumulative_count_df["Index"]) + 2)
+
+    # Plot title
+    plt.title(title, fontsize=22)
+
+    # Line chart creation
+    plt.plot(cumulative_count_df["Index"], cumulative_count_df["Cumulative Count"], color="#3F5D7D")
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+def create_cumulative_counts_reverse_df(billboard_df_artist_count):
+    counts_col_reverse = billboard_df_artist_count.sort_values(['Counts'], ascending = 1)["Counts"]
+    cumulative_count_reverse = []
+    temp = 0
+    cumulative_count_reverse.append(temp)
+    for count in counts_col_reverse:
+        temp += count
+        cumulative_count_reverse.append(temp)
+
+    data = {"Cumulative Count Reverse": cumulative_count_reverse}
+    cumulative_count_reverse_df = pd.DataFrame(data, columns = ["Cumulative Count Reverse"])
+    return cumulative_count_reverse_df
+
+def plot_lorenz_curve(cumulative_count_reverse_df, total_nb_songs, total_nb_artists, xlabel, ylabel, title, save_title_path):
+    plt.figure(figsize=(12, 9))
+
+    # Axis properties
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    # Axis labels
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Plot title
+    plt.title(title, fontsize=22)
+
+    # Line chart creation
+    plt.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"], color="#3F5D7D")
+
+    # Equity line
+    eq_range = [total_nb_songs / float(total_nb_artists) * i for i in range(0, total_nb_artists)]
+    plt.plot(range(0, total_nb_artists), eq_range)
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
