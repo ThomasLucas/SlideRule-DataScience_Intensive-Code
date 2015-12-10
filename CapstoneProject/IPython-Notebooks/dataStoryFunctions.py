@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats as sstats
 
+from matplotlib import gridspec
 from pyechonest import config
 from pyechonest import song
 from pyechonest import artist
@@ -148,7 +149,8 @@ def create_bar_chart_featurings(x, y, xlabel, ylabel, title, save_title_path, n1
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
 
-def create_entries_count_by_artist(billboard_df):
+def create_entries_count_by_artist(billboard_df, start_year, end_year):
+    billboard_df = billboard_df[(billboard_df["Year"] >= start_year) & (billboard_df["Year"] < end_year)]
     billboard_artists_series = billboard_df['Artist(s)']
     featuring_mask = billboard_artists_series.str.contains("featuring")
 
@@ -264,11 +266,54 @@ def plot_lorenz_curve(cumulative_count_reverse_df, total_nb_songs, total_nb_arti
     plt.title(title, fontsize=22)
 
     # Line chart creation
-    plt.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"], color="#3F5D7D")
+    plt.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"])
 
     # Equity line
     eq_range = [total_nb_songs / float(total_nb_artists) * i for i in range(0, total_nb_artists)]
-    plt.plot(range(0, total_nb_artists), eq_range)
+    plt.plot(range(0, total_nb_artists), eq_range, color="#3F5D7D")
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+
+def plot_multiple_lorenz_curves(billboard_df, start_year, end_year, interval, step,
+                                    xlabel, ylabel, title, save_title_path):
+
+    fig = plt.figure(figsize=(12, 15))
+    nb_plots = (end_year - start_year) / step
+    if nb_plots > 1:
+        gs = gridspec.GridSpec(nb_plots / 2, 2)
+    else:
+        gs = gridspec.GridSpec(1, 1)
+
+    years_range = range(start_year, end_year - step, step)
+    for year in years_range:
+        billboard_df_artist_count = create_entries_count_by_artist(billboard_df, year, year + interval)
+        cumulative_count_reverse_df = create_cumulative_counts_reverse_df(billboard_df_artist_count)
+        total_nb_songs = cumulative_count_reverse_df.tail(1)["Cumulative Count Reverse"].tolist()[0]
+        total_nb_artists = cumulative_count_reverse_df.tail(1)["Cumulative Count Reverse"].index.tolist()[0]
+
+        ax = fig.add_subplot(gs[years_range.index(year) / 2, years_range.index(year) % 2])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        # Axis labels
+        plt.xlabel(xlabel, fontsize=12)
+        plt.ylabel(ylabel, fontsize=12)
+
+        # Title
+        plt.title(title + " " + str(year) + " - " + str(year + interval - 1), fontsize=14)
+
+        # Lorenz curve
+        ax.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"])
+
+        # Equity line
+        eq_range = [total_nb_songs / float(total_nb_artists) * i for i in range(0, total_nb_artists)]
+        ax.plot(range(0, total_nb_artists), eq_range, color="#3F5D7D")
+
+        gs.update(wspace=0.5, hspace=0.8)
 
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
