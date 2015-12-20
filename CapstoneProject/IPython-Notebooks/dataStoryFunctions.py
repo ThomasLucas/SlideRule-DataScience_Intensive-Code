@@ -5,12 +5,18 @@
 ### Imports ###
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import scipy.stats as sstats
 
 from matplotlib import gridspec
 from pyechonest import config
 from pyechonest import song
 from pyechonest import artist
+
+### Global variables ###
+
+# Colors
+colors_list_tableau = create_tableau20_RGB_code()
 
 ### Functions creation ###
 
@@ -139,9 +145,9 @@ def create_bar_chart_featurings(x, y, xlabel, ylabel, title, save_title_path, n1
     color_list = []
     for value in x:
         if value in n1_list:
-            color_list.append("#db8d51")
+            color_list.append(colors_list_tableau[3])
         else:
-            color_list.append("#3F5D7D")
+            color_list.append(colors_list_tableau[0])
 
     # Bar chart creation
     plt.bar(x, y, color=color_list)
@@ -250,11 +256,16 @@ def plot_lorenz_curve(cumulative_count_reverse_df, total_nb_songs, total_nb_arti
     plt.figure(figsize=(12, 9))
 
     # Axis properties
+    fmt = '%.0f%%' # Format you want the ticks, e.g. '40%'
     ax = plt.subplot(111)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
+    xticks = mtick.FormatStrFormatter(fmt)
+    yticks = mtick.FormatStrFormatter(fmt)
+    ax.xaxis.set_major_formatter(xticks)
+    ax.yaxis.set_major_formatter(yticks)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
 
@@ -265,55 +276,169 @@ def plot_lorenz_curve(cumulative_count_reverse_df, total_nb_songs, total_nb_arti
     # Plot title
     plt.title(title, fontsize=22)
 
+    # x axis values normalized
+    x_values_normalized = [i/ float(total_nb_artists) * 100 for i in range(0, total_nb_artists + 1)]
+
+    # y axis values normalized
+    y_values_normalized = [i/ float(total_nb_songs) * 100 for i in cumulative_count_reverse_df["Cumulative Count Reverse"]]
+
     # Line chart creation
-    plt.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"])
+    plt.plot(x_values_normalized, y_values_normalized)
 
     # Equity line
-    eq_range = [total_nb_songs / float(total_nb_artists) * i for i in range(0, total_nb_artists)]
-    plt.plot(range(0, total_nb_artists), eq_range, color="#3F5D7D")
+    plt.plot(x_values_normalized, x_values_normalized, color="#3F5D7D")
 
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
 
 
 def plot_multiple_lorenz_curves(billboard_df, start_year, end_year, interval, step,
-                                    xlabel, ylabel, title, save_title_path):
+                                    xlabel, ylabel, title, save_title_path, subplot):
 
-    fig = plt.figure(figsize=(12, 15))
-    nb_plots = (end_year - start_year) / step
-    if nb_plots > 1:
-        gs = gridspec.GridSpec(nb_plots / 2, 2)
+    if not subplot:
+        fig = plt.figure(figsize=(12, 15))
+        nb_plots = (end_year - start_year) / step
+        if nb_plots > 1:
+            gs = gridspec.GridSpec(nb_plots / 2, 2)
+        else:
+            gs = gridspec.GridSpec(1, 1)
     else:
-        gs = gridspec.GridSpec(1, 1)
+        fig = plt.figure(figsize=(12, 9))
 
     years_range = range(start_year, end_year - step, step)
+
+    if subplot:
+        last_year = years_range[-1] + step
+        if last_year <= end_year:
+            years_range.append(last_year)
+
     for year in years_range:
-        billboard_df_artist_count = create_entries_count_by_artist(billboard_df, year, year + interval)
+        if year + interval <= end_year:
+            billboard_df_artist_count = create_entries_count_by_artist(billboard_df, year, year + interval)
+            upper_bound = year + interval - 1
+        else:
+            billboard_df_artist_count = create_entries_count_by_artist(billboard_df, year, end_year)
+            upper_bound = end_year
         cumulative_count_reverse_df = create_cumulative_counts_reverse_df(billboard_df_artist_count)
         total_nb_songs = cumulative_count_reverse_df.tail(1)["Cumulative Count Reverse"].tolist()[0]
         total_nb_artists = cumulative_count_reverse_df.tail(1)["Cumulative Count Reverse"].index.tolist()[0]
 
-        ax = fig.add_subplot(gs[years_range.index(year) / 2, years_range.index(year) % 2])
+        fmt = '%.0f%%' # Format you want the ticks, e.g. '40%'
+        if subplot:
+            ax = plt.subplot(111)
+        else:
+            ax = fig.add_subplot(gs[years_range.index(year) / 2, years_range.index(year) % 2])
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
+        xticks = mtick.FormatStrFormatter(fmt)
+        yticks = mtick.FormatStrFormatter(fmt)
+        ax.xaxis.set_major_formatter(xticks)
+        ax.yaxis.set_major_formatter(yticks)
 
         # Axis labels
         plt.xlabel(xlabel, fontsize=12)
-        plt.ylabel(ylabel, fontsize=12)
+        plt.ylabel(ylabel, fontsize=12)           
 
+         # x axis values normalized
+        x_values_normalized = [i/ float(total_nb_artists) * 100 for i in range(0, total_nb_artists + 1)]
+
+        # y axis values normalized
+        y_values_normalized = [i/ float(total_nb_songs) * 100 for i in cumulative_count_reverse_df["Cumulative Count Reverse"]]
+
+        # Line chart creation
+        plt.plot(x_values_normalized, y_values_normalized, label = str(year) + " - " + str(upper_bound))
+
+        if not subplot:
+            # Title
+            plt.title(title + " " + str(year) + " - " + str(upper_bound), fontsize=14)
+
+            # Equity line
+            plt.plot(x_values_normalized, x_values_normalized, color="#3F5D7D")
+
+            gs.update(wspace=0.5, hspace=0.8)
+
+    if subplot:
         # Title
-        plt.title(title + " " + str(year) + " - " + str(year + interval - 1), fontsize=14)
-
-        # Lorenz curve
-        ax.plot(range(0, total_nb_artists + 1), cumulative_count_reverse_df["Cumulative Count Reverse"])
+        plt.title(title + "s for each decade between " + str(start_year) + " and " + str(end_year), fontsize=14)
 
         # Equity line
-        eq_range = [total_nb_songs / float(total_nb_artists) * i for i in range(0, total_nb_artists)]
-        ax.plot(range(0, total_nb_artists), eq_range, color="#3F5D7D")
+        plt.plot(x_values_normalized, x_values_normalized, color="#3F5D7D")
 
-        gs.update(wspace=0.5, hspace=0.8)
+        # Legend
+        plt.legend(loc = 2)
 
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
+
+
+def calculate_gini_coefficient(billboard_df, start_year, end_year):
+    billboard_df_artist_count = create_entries_count_by_artist(billboard_df, start_year, end_year)
+    total_nb_artists = billboard_df_artist_count["Lead Artist(s)"].count()
+    mean = billboard_df_artist_count["Counts"].mean()
+    rank = range(1, total_nb_artists + 1)
+    sum_product = sum(billboard_df_artist_count["Counts"] * rank)
+
+    g = (total_nb_artists + 1) / float(total_nb_artists - 1) - (2 / (total_nb_artists * (total_nb_artists - 1) * mean)) * sum_product
+    return g
+
+def calculte_gini_per_year(billboard_df, start_year, end_year, interval):
+    years = []
+    gini = []
+    years_range = range(start_year, end_year - interval, interval)
+    last_year = years_range[-1] + interval
+    if last_year <= end_year:
+        years_range.append(last_year)
+
+    for year in years_range:
+        if year + interval <= end_year:
+            upper_bound = year + interval
+        else:
+            upper_bound = end_year
+        if interval > 1:
+            years.append(str(year) + " - " + str(upper_bound))
+        else:    
+            years.append(year)
+        gini.append(calculate_gini_coefficient(billboard_df, year, upper_bound))
+
+    data = {"Year(s)": years, "Gini Coefficient": gini}
+    gini_coefficient_df = pd.DataFrame(data, columns = ["Year(s)", "Gini Coefficient"])
+    return gini_coefficient_df  
+
+def plot_gini_coefficient(gini_coefficient_df, xlabel, ylabel, title, save_title_path):
+    plt.figure(figsize=(12, 9))
+
+    # Axis properties
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    plt.yticks(fontsize=12)
+
+    # Axis labels
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+
+    # Plot title
+    plt.title(title, fontsize=22)
+
+    # x axis values can be strings, we need to map this to integer to be able to plot them
+    years_index = gini_coefficient_df["Year(s)"].index.tolist()
+
+    # Limit the range of the plot to only where the data is.
+    plt.xlim(years_index[0] - 2, years_index[len(years_index) - 1] + 2)
+
+    # Bar chart creation
+    plt.bar(years_index, gini_coefficient_df["Gini Coefficient"], color = colors_list_tableau[0], align='center')
+    plt.xticks(years_index, gini_coefficient_df["Year(s)"], fontsize = 12, rotation = 70)
+
+    # Save the figure as a PNG.
+    plt.savefig(save_title_path, bbox_inches="tight")
+
+
+
+
+
+
