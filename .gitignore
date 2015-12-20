@@ -79,3 +79,5 @@ CapstoneProject/IPython-Notebooks/.ipynb_checkpoints/DataStory-checkpoint.ipynb
 CapstoneProject/IPython-Notebooks/Pyechonest_API_test.ipynb
 
 CapstoneProject/IPython-Notebooks/dataStoryFunctions.sublime-workspace
+
+*.ipynb
