@@ -13,6 +13,7 @@ from matplotlib import gridspec
 from pyechonest import config
 from pyechonest import song
 from pyechonest import artist
+from pandas.io.json import json_normalize
 
 ### Global variables ###
 
@@ -440,9 +441,7 @@ def plot_gini_coefficient(gini_coefficient_df, xlabel, ylabel, title, save_title
 
 def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_add):
     billboard_df_temp = pd.DataFrame.copy(billboard_df_artist_count)
-    series_list = []
     for item in items_to_add:
-        series_list.append([])
         billboard_df_temp[item] = ""
 
     count_access_api = 0
@@ -467,5 +466,73 @@ def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_a
     billboard_df_temp.to_csv('CSV_data/billboard_df_artist_count_with_additional_items.csv', sep=',')        
     return billboard_df_temp
 
+def add_songs_characteristics_to_df(billboard_df):
+    billboard_df_temp = pd.DataFrame.copy(billboard_df)
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Artist(s)"].str.split(" featuring ").str.get(0)
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" and ").str.get(0)
+    billboard_df_temp["latitude"] = ""
+    billboard_df_temp["longitude"] = ""
+    billboard_df_temp["location"] = ""
+    billboard_df_temp["song_type_0"] = ""
+    billboard_df_temp["song_type_1"] = ""
+    billboard_df_temp["song_type_2"] = ""
+    billboard_df_temp["song_discovery"] = ""
+    billboard_df_temp["acousticness"] = ""
+    billboard_df_temp["danceability"] = ""
+    billboard_df_temp["duration"] = ""
+    billboard_df_temp["energy"] = ""
+    billboard_df_temp["instrumentalness"] = ""
+    billboard_df_temp["key"] = ""
+    billboard_df_temp["liveness"] = ""
+    billboard_df_temp["loudness"] = ""
+    billboard_df_temp["mode"] = ""
+    billboard_df_temp["speechiness"] = ""
+    billboard_df_temp["tempo"] = ""
+    billboard_df_temp["valence"] = ""
 
+    count_access_api = 0
+    for artist_name in billboard_df_temp["Lead Artist(s)"]:
+        index_artist = billboard_df_temp[billboard_df_temp["Lead Artist(s)"] == artist_name].index.tolist()[0]
+        song_title = billboard_df_temp.loc[index_artist, "Title"]
+
+        count_access_api += 1
+        if count_access_api >= 120:
+            time.sleep(60)
+            count_access_api = 0
+        try:    
+            results = song.search(artist = artist_name, title = song_title, buckets=['artist_location', 'audio_summary', 'song_type', 'song_discovery'])
+            current_song = results[0]
+
+            billboard_df_temp.loc[index_artist, "latitude"] = current_song.artist_location["latitude"]
+            billboard_df_temp.loc[index_artist, "longitude"] = current_song.artist_location["longitude"]
+            billboard_df_temp.loc[index_artist, "location"] = current_song.artist_location["location"]
+
+            song_type_list = current_song.song_type
+            for i, song_type_item in enumerate(song_type_list):
+                if i > 2:
+                    break
+                billboard_df_temp.loc[index_artist, "song_type_" + str(i)] = song_type_item
+
+
+            billboard_df_temp.loc[index_artist, "song_discovery"] = current_song.song_discovery
+
+            billboard_df_temp.loc[index_artist, "acousticness"] = current_song.audio_summary["acousticness"]
+            billboard_df_temp.loc[index_artist, "danceability"] = current_song.audio_summary["danceability"]
+            billboard_df_temp.loc[index_artist, "duration"] = current_song.audio_summary["duration"]
+            billboard_df_temp.loc[index_artist, "energy"] = current_song.audio_summary["energy"]
+            billboard_df_temp.loc[index_artist, "instrumentalness"] = current_song.audio_summary["instrumentalness"]
+            billboard_df_temp.loc[index_artist, "key"] = current_song.audio_summary["key"]
+            billboard_df_temp.loc[index_artist, "liveness"] = current_song.audio_summary["liveness"]
+            billboard_df_temp.loc[index_artist, "loudness"] = current_song.audio_summary["loudness"]
+            billboard_df_temp.loc[index_artist, "mode"] = current_song.audio_summary["mode"]
+            billboard_df_temp.loc[index_artist, "speechiness"] = current_song.audio_summary["speechiness"]
+            billboard_df_temp.loc[index_artist, "tempo"] = current_song.audio_summary["tempo"]
+            billboard_df_temp.loc[index_artist, "valence"] = current_song.audio_summary["valence"]
+
+        except:
+            print "Artist name: ", artist_name, "- Song Title: ", song_title
+            pass
+
+
+    return billboard_df_temp
 
