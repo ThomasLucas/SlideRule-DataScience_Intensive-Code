@@ -497,6 +497,8 @@ def add_songs_characteristics_to_df(billboard_df):
     billboard_df_temp["tempo"] = ""
     billboard_df_temp["valence"] = ""
 
+    fail_dict = {}
+
     count_access_api = 0
     year = 1900
     #for artist_name in billboard_df_temp["Lead Artist(s)"]:
@@ -517,16 +519,12 @@ def add_songs_characteristics_to_df(billboard_df):
             artist_name = "Diddy"
         if artist_name == "Lil Jon & The East Side Boyz":
             artist_name = "Lil Jon" 
-
-        if "(" in song_title:    
-            song_title = song_title.split(" ( ")[0]  
               
         count_access_api += 1
         if count_access_api >= 120:
             time.sleep(60)
             count_access_api = 0
         try: 
-            time.sleep(5)   
             results = song.search(artist = artist_name, title = song_title, buckets=['artist_location', 'audio_summary', 'song_type', 'song_discovery'])
             current_song = results[0]
 
@@ -558,6 +556,11 @@ def add_songs_characteristics_to_df(billboard_df):
 
         except:
             print "Artist name: ", artist_name, "- Song Title: ", song_title
+            if year in fail_dict:
+                fail_dict[year].append([artist_name, song_title])
+            else:
+                fail_dict[year] = []
+                fail_dict[year].append([artist_name, song_title])
             pass
 
     billboard_df_temp.to_csv('CSV_data/billboard_df_with_additional_characteristics.csv', sep=',', encoding='utf-8')
@@ -565,5 +568,5 @@ def add_songs_characteristics_to_df(billboard_df):
     elapsed_time = time.time() - start_time
     print "Time Elapsed: ", elapsed_time
 
-    return billboard_df_temp
+    return {"billboard_df_temp": billboard_df_temp, "fail_dict": fail_dict} 
 
