@@ -15,11 +15,6 @@ from pyechonest import song
 from pyechonest import artist
 from pandas.io.json import json_normalize
 
-### Global variables ###
-
-# Colors
-colors_list_tableau = create_tableau20_RGB_code()
-
 ### Functions creation ###
 
 # Creation of a list of integers corresponding to all the years we are interested in
@@ -59,6 +54,9 @@ def create_tableau20_RGB_code():
         tableau20[i] = (r / 255., g / 255., b / 255.)
 
     return tableau20
+
+# Colors
+colors_list_tableau = create_tableau20_RGB_code()
 
 # graph_type is a string which can be {'Artist(s)', 'Title'}
 def create_stats_lists(graph_type, years, billboard_df):
@@ -439,6 +437,12 @@ def plot_gini_coefficient(gini_coefficient_df, xlabel, ylabel, title, save_title
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
 
+
+# EchoNest API functions
+
+# NB: - Pink is named "P!nk" in EchoNest DB
+#     - The Jackson 5 are named "The Jacksons" in EchoNest DB
+
 def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_add):
     billboard_df_temp = pd.DataFrame.copy(billboard_df_artist_count)
     for item in items_to_add:
@@ -467,9 +471,12 @@ def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_a
     return billboard_df_temp
 
 def add_songs_characteristics_to_df(billboard_df):
+    start_time = time.time()
+
     billboard_df_temp = pd.DataFrame.copy(billboard_df)
     billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Artist(s)"].str.split(" featuring ").str.get(0)
     billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" and ").str.get(0)
+
     billboard_df_temp["latitude"] = ""
     billboard_df_temp["longitude"] = ""
     billboard_df_temp["location"] = ""
@@ -491,15 +498,35 @@ def add_songs_characteristics_to_df(billboard_df):
     billboard_df_temp["valence"] = ""
 
     count_access_api = 0
-    for artist_name in billboard_df_temp["Lead Artist(s)"]:
-        index_artist = billboard_df_temp[billboard_df_temp["Lead Artist(s)"] == artist_name].index.tolist()[0]
-        song_title = billboard_df_temp.loc[index_artist, "Title"]
+    year = 1900
+    #for artist_name in billboard_df_temp["Lead Artist(s)"]:
+    for index_artist, row in billboard_df_temp.iterrows():
+        year_loop = row["Year"]
+        if year != year_loop:
+            year = year_loop
+            print year
+        #index_artist = billboard_df_temp[billboard_df_temp["Lead Artist(s)"] == artist_name].index.tolist()[0]
+        song_title = row["Title"] #billboard_df_temp.loc[index_artist, "Title"]
+        artist_name = row["Lead Artist(s)"]
 
+        if artist_name == "Pink":
+            artist_name = "P!nk"
+        if artist_name == "The Jackson 5":
+            artist_name = "The Jacksons"
+        if (artist_name == "Puff Daddy") or (artist_name == "P. Diddy"):
+            artist_name = "Diddy"
+        if artist_name == "Lil Jon & The East Side Boyz":
+            artist_name = "Lil Jon" 
+
+        if "(" in song_title:    
+            song_title = song_title.split(" ( ")[0]  
+              
         count_access_api += 1
         if count_access_api >= 120:
             time.sleep(60)
             count_access_api = 0
-        try:    
+        try: 
+            time.sleep(5)   
             results = song.search(artist = artist_name, title = song_title, buckets=['artist_location', 'audio_summary', 'song_type', 'song_discovery'])
             current_song = results[0]
 
@@ -533,6 +560,10 @@ def add_songs_characteristics_to_df(billboard_df):
             print "Artist name: ", artist_name, "- Song Title: ", song_title
             pass
 
+    billboard_df_temp.to_csv('CSV_data/billboard_df_with_additional_characteristics.csv', sep=',', encoding='utf-8')
+
+    elapsed_time = time.time() - start_time
+    print "Time Elapsed: ", elapsed_time
 
     return billboard_df_temp
 
