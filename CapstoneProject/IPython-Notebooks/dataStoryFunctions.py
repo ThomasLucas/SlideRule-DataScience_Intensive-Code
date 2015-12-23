@@ -470,7 +470,7 @@ def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_a
     billboard_df_temp.to_csv('CSV_data/billboard_df_artist_count_with_additional_items.csv', sep=',')        
     return billboard_df_temp
 
-def add_songs_characteristics_to_df(billboard_df):
+def add_songs_characteristics_to_df(billboard_df, save_title_path):
     start_time = time.time()
 
     billboard_df_temp = pd.DataFrame.copy(billboard_df)
@@ -507,8 +507,8 @@ def add_songs_characteristics_to_df(billboard_df):
         if year != year_loop:
             year = year_loop
             print year
-        #index_artist = billboard_df_temp[billboard_df_temp["Lead Artist(s)"] == artist_name].index.tolist()[0]
-        song_title = row["Title"] #billboard_df_temp.loc[index_artist, "Title"]
+
+        song_title = row["Title"] 
         artist_name = row["Lead Artist(s)"]
 
         if artist_name == "Pink":
@@ -528,9 +528,10 @@ def add_songs_characteristics_to_df(billboard_df):
             results = song.search(artist = artist_name, title = song_title, buckets=['artist_location', 'audio_summary', 'song_type', 'song_discovery'])
             current_song = results[0]
 
-            billboard_df_temp.loc[index_artist, "latitude"] = current_song.artist_location["latitude"]
-            billboard_df_temp.loc[index_artist, "longitude"] = current_song.artist_location["longitude"]
-            billboard_df_temp.loc[index_artist, "location"] = current_song.artist_location["location"]
+            if current_song.artist_location:
+                billboard_df_temp.loc[index_artist, "latitude"] = current_song.artist_location["latitude"]
+                billboard_df_temp.loc[index_artist, "longitude"] = current_song.artist_location["longitude"]
+                billboard_df_temp.loc[index_artist, "location"] = current_song.artist_location["location"]
 
             song_type_list = current_song.song_type
             for i, song_type_item in enumerate(song_type_list):
@@ -541,18 +542,19 @@ def add_songs_characteristics_to_df(billboard_df):
 
             billboard_df_temp.loc[index_artist, "song_discovery"] = current_song.song_discovery
 
-            billboard_df_temp.loc[index_artist, "acousticness"] = current_song.audio_summary["acousticness"]
-            billboard_df_temp.loc[index_artist, "danceability"] = current_song.audio_summary["danceability"]
-            billboard_df_temp.loc[index_artist, "duration"] = current_song.audio_summary["duration"]
-            billboard_df_temp.loc[index_artist, "energy"] = current_song.audio_summary["energy"]
-            billboard_df_temp.loc[index_artist, "instrumentalness"] = current_song.audio_summary["instrumentalness"]
-            billboard_df_temp.loc[index_artist, "key"] = current_song.audio_summary["key"]
-            billboard_df_temp.loc[index_artist, "liveness"] = current_song.audio_summary["liveness"]
-            billboard_df_temp.loc[index_artist, "loudness"] = current_song.audio_summary["loudness"]
-            billboard_df_temp.loc[index_artist, "mode"] = current_song.audio_summary["mode"]
-            billboard_df_temp.loc[index_artist, "speechiness"] = current_song.audio_summary["speechiness"]
-            billboard_df_temp.loc[index_artist, "tempo"] = current_song.audio_summary["tempo"]
-            billboard_df_temp.loc[index_artist, "valence"] = current_song.audio_summary["valence"]
+            if current_song.audio_summary:
+                billboard_df_temp.loc[index_artist, "acousticness"] = current_song.audio_summary["acousticness"]
+                billboard_df_temp.loc[index_artist, "danceability"] = current_song.audio_summary["danceability"]
+                billboard_df_temp.loc[index_artist, "duration"] = current_song.audio_summary["duration"]
+                billboard_df_temp.loc[index_artist, "energy"] = current_song.audio_summary["energy"]
+                billboard_df_temp.loc[index_artist, "instrumentalness"] = current_song.audio_summary["instrumentalness"]
+                billboard_df_temp.loc[index_artist, "key"] = current_song.audio_summary["key"]
+                billboard_df_temp.loc[index_artist, "liveness"] = current_song.audio_summary["liveness"]
+                billboard_df_temp.loc[index_artist, "loudness"] = current_song.audio_summary["loudness"]
+                billboard_df_temp.loc[index_artist, "mode"] = current_song.audio_summary["mode"]
+                billboard_df_temp.loc[index_artist, "speechiness"] = current_song.audio_summary["speechiness"]
+                billboard_df_temp.loc[index_artist, "tempo"] = current_song.audio_summary["tempo"]
+                billboard_df_temp.loc[index_artist, "valence"] = current_song.audio_summary["valence"]
 
         except:
             print "Artist name: ", artist_name, "- Song Title: ", song_title
@@ -563,10 +565,13 @@ def add_songs_characteristics_to_df(billboard_df):
                 fail_dict[year].append([artist_name, song_title])
             pass
 
-    billboard_df_temp.to_csv('CSV_data/billboard_df_with_additional_characteristics.csv', sep=',', encoding='utf-8')
+       
+    billboard_df_temp.to_csv(save_title_path, sep=',', encoding='utf-8')
 
     elapsed_time = time.time() - start_time
     print "Time Elapsed: ", elapsed_time
 
     return {"billboard_df_temp": billboard_df_temp, "fail_dict": fail_dict} 
 
+
+# Look at the artists who have managed to be in the top several years with the same song
