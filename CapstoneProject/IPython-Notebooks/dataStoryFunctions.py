@@ -15,6 +15,103 @@ from pyechonest import song
 from pyechonest import artist
 from pandas.io.json import json_normalize
 
+### Global variables ###
+ARTIST_DICTIONARY = {
+        "Pink": "P!nk",
+        "The Jackson 5": "The Jacksons",
+        "Puff Daddy": "Diddy",
+        "P. Diddy": "Diddy",
+        "Snoop Doggy Dogg": "Snoop Dogg",
+        "Jon Bon Jovi": "Bon Jovi",
+        "'N Sync": "NSync",
+        "Lil' Kim": "Lil Kim",
+        "Soulja Boy Tell 'Em": "Soulja Boy",
+        "The B-52s": "B-52",
+        "John Cougar": "John Mellencamp",
+        "John Cougar Mellencamp": "John Mellencamp",
+        "The SOS Band": "The S.O.S Band",
+        "PSY": "Psy",
+        "Force MDs": "Force MD's",
+        "GQ": "G.Q.",
+        "Earth": "Earth, Wind & Fire",
+        "Ricky Nelson": "Rick Nelson",
+        "Ferrante": "Ferrante and Teicher",
+        "Little Stevie Wonder": "Stevie Wonder",
+        "Ike": "Ike Turner",
+        "Zac Brown Band": "Zac Brown",
+        "Lil' Bow Wow": "Bow Wow",
+        "Kool": "Kool & the Gang",
+        "The Guess Who": "Guess Who",
+        "The Four Tops": "Four Tops",
+        "The Bee Gees": "Bee Gees",
+        "Allen": "Kris Allen",
+        "The Bill Black Combo": "Bill Black",
+        "Ray Parker": "Ray Parker Jr.",
+        "Billy Davis": "Billy Davis Jr.",
+        "M_a": "Mya",
+        "Daryl Hall & John Oates": "Hall & Oates",
+        "or Tyga": "Tyga"
+    }
+
+MULTIPLE_ARTIST_LIST = [
+    "Earth, Wind & Fire",
+    "Peter, Paul and Mary",
+    "Dino, Desi & Billy",
+    "Blood, Sweat & Tears",
+    "Ray Parker, Jr.",
+    "Billy Davis, Jr.",
+    "Sammy Davis, Jr.",
+    "Crosby, Stills & Nash",
+    "Hamilton, Joe Frank & Reynolds",
+    "Dion and the Belmonts",
+    "Ferrante & Teicher",
+    "Hank Ballard and The Midnighters",
+    "Skip & Flip",
+    "Johnny and the Hurricanes"
+    "Dick and Dee Dee",
+    "Shep and the Limelites",
+    "Little Caesar & the Romans",
+    "Rosie and the Originals",
+    "Joey Dee and the Starliters",
+    "Jay and the Americans",
+    "Booker T. & the M.G.'s",
+    "Billy Joe and the Checkmates",
+    "Ronnie & the Hi-Lites",
+    "Paul & Paula",
+    "Commander Cody and His Lost Planet Airmen",
+    "Dr. Hook & The Medicine Show",
+    "Brenda & the Tabulations",
+    "Maurice Williams and the Zodiacs",
+    "Love and Rockets",
+    "Huey Lewis and the News",
+    "Wing and a Prayer Fife and Drum Corps",
+    "Peter and Gordon",
+    "Gerry and the Pacemakers",
+    "Tommy James and the Shondells",
+    "Big Brother and the Holding Company",
+    "Gary Lewis and the Playboys",
+    "Mac and Katie Kissoon",
+    "Mel and Tim",
+    "Derek and the Dominos",
+    "Tony Orlando and Dawn",
+    "Prince and The Revolution",
+    "Lisa Lisa and Cult Jam",
+    "Prince and The New Power Generation",
+    "Franke and the Knockouts",
+    "Joan Jett and the Blackhearts",
+    "Katrina and the Waves",
+    "Love and Rockets",
+    "Bruce Hornsby and the Range",
+    "Evan and Jaron",
+    "Marky Mark and the Funky Bunch",
+    "Jive Bunny and the Mastermixers",
+    "Tom Petty and the Heartbreakers",
+    "B-Rock and the Bizz",
+    "Marky Mark and the Funky Bunch",
+    "Billy Vera and the Beaters"
+]
+
+
 ### Functions creation ###
 
 # Creation of a list of integers corresponding to all the years we are interested in
@@ -155,23 +252,144 @@ def create_bar_chart_featurings(x, y, xlabel, ylabel, title, save_title_path, n1
     # Save the figure as a PNG.
     plt.savefig(save_title_path, bbox_inches="tight")
 
-def create_entries_count_by_artist(billboard_df, start_year, end_year):
-    billboard_df = billboard_df[(billboard_df["Year"] >= start_year) & (billboard_df["Year"] < end_year)]
-    billboard_artists_series = billboard_df['Artist(s)']
-    featuring_mask = billboard_artists_series.str.contains("featuring")
-
+def create_entries_by_unique_artist(billboard_df, start_year, end_year):
+    billboard_df = billboard_df[(billboard_df["Year"] >= start_year) & (billboard_df["Year"] <= end_year)]
     billboard_df_temp = pd.DataFrame.copy(billboard_df)
-    billboard_df_temp.loc[:, "Lead Artist(s)"] = billboard_df['Artist(s)']
 
-    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" featuring ").str.get(0)
+    billboard_unique_artists = []
+    billboard_songs = []
+    billboard_years = []
+    billboard_rank = []
 
-    billboard_df_temp.loc[:, "Counts"] = billboard_df_temp.groupby('Lead Artist(s)')['Lead Artist(s)'].transform('count')
-    billboard_df_artist_count = pd.concat([billboard_df_temp['Lead Artist(s)'],
-                                           billboard_df_temp['Counts']], axis=1,
-                                          keys=['Lead Artist(s)', 'Counts'])
+    for index_artist, row in billboard_df_temp.iterrows():
+        artist = row["Artist(s)"]
+        title = row["Title"]
+        year = row["Year"]
+        rank = row["Num"]
+        if artist == "Earth, Wind & Fire & The Emotions":
+            billboard_unique_artists.append("Earth, Wind & Fire")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("The Emotions")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue
+        elif artist == "Grover Washington, Jr. & Bill Withers":
+            billboard_unique_artists.append("Grover Washington, Jr.")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Bill Withers") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue
+        elif artist == "Dionne and Friends (Dionne Warwick, Gladys Knight, Elton John and Stevie Wonder)":
+            billboard_unique_artists.append("Dionne Warwick")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Gladys Knight") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Elton John")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Stevie Wonder") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue
+        elif artist == "Allen, KrisKris Allen":
+            billboard_unique_artists.append("Kris Allen") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue
+        elif artist == "Crosby, Stills, Nash & Young":
+            billboard_unique_artists.append("Crosby, Stills & Nash") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue    
+        elif artist in MULTIPLE_ARTIST_LIST:
+            billboard_unique_artists.append(artist) 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue   
+        else:
+            artist_comma_splitted = artist.split(", ")
+            for item in artist_comma_splitted:
+                if (item == "") or (item == " "):
+                    continue
+                elif item in MULTIPLE_ARTIST_LIST:
+                    billboard_unique_artists.append(item) 
+                    billboard_rank.append(rank)
+                    billboard_songs.append(title)
+                    billboard_years.append(year)
+                    continue
+                item_featuring_splitted = item.split(" featuring ")
+                for item2 in item_featuring_splitted:
+                    if (item2 == "") or (item2 == " "):
+                        continue
+                    
+                    if item2 in MULTIPLE_ARTIST_LIST:
+                        billboard_unique_artists.append(item2) 
+                        billboard_rank.append(rank)
+                        billboard_songs.append(title)
+                        billboard_years.append(year)
+                        continue
+                    elif (year >= 1982) & ((" and " in item2) or (item2.startswith("and "))):
+                        if item2.startswith("and "):
+                            item_and_splitted = item2.split("and ")
+                        else:
+                            item_and_splitted = item2.split(" and ")
 
-    billboard_df_artist_count = billboard_df_artist_count.groupby('Lead Artist(s)').count().reset_index()
-    return billboard_df_artist_count.sort_values(['Counts'], ascending = 0)
+                        for item3 in item_and_splitted:
+                            if (item3 == "") or (item3 == " "):
+                                continue
+                            
+                            if item3 in ARTIST_DICTIONARY:
+                                billboard_unique_artists.append(ARTIST_DICTIONARY[item3])
+                            else:
+                                billboard_unique_artists.append(item3)
+                            billboard_rank.append(rank)
+                            billboard_songs.append(title)
+                            billboard_years.append(year)
+                    else:
+                        if item2 in ARTIST_DICTIONARY:
+                            billboard_unique_artists.append(ARTIST_DICTIONARY[item2])
+                        else:
+                            billboard_unique_artists.append(item2)
+                        billboard_rank.append(rank)
+                        billboard_songs.append(title)
+                        billboard_years.append(year)
+
+    data = {"Rank": billboard_rank, "Artist(s)": billboard_unique_artists, "Title": billboard_songs, "Year": billboard_years}
+    unique_artist_df = pd.DataFrame(data, columns = ["Rank", "Artist(s)", "Title", "Year"])
+    return unique_artist_df
+
+
+def create_entries_count_by_artist(unique_artist_df):
+    unique_artist_df_temp = pd.DataFrame.copy(unique_artist_df)
+
+    count_series = unique_artist_df_temp.groupby('Artist(s)')['Artist(s)'].transform('count')
+    unique_artist_df_count = pd.concat([unique_artist_df_temp['Artist(s)'], count_series], axis=1,
+                                           keys=['Artist(s)', 'Counts'])
+    unique_artist_df_average_rank = pd.concat([unique_artist_df_temp['Artist(s)'], unique_artist_df_temp['Rank']], axis=1,
+                                           keys=['Artist(s)', 'Rank'])
+
+    unique_artist_df_count = unique_artist_df_count.groupby('Artist(s)').count().reset_index()
+    unique_artist_df_average_rank = unique_artist_df_average_rank.groupby("Artist(s)").mean().reset_index()
+
+    unique_artist_df_count_and_rank = unique_artist_df_count.merge(unique_artist_df_average_rank, on="Artist(s)")
+
+    return unique_artist_df_count_and_rank.sort_values(['Counts'], ascending = 0)
 
 def create_histogram_nb_entries(counts_col, xlabel, ylabel, title, save_title_path):
     plt.figure(figsize=(12, 9))
@@ -470,12 +688,28 @@ def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_a
     billboard_df_temp.to_csv('CSV_data/billboard_df_artist_count_with_additional_items.csv', sep=',')        
     return billboard_df_temp
 
-def add_songs_characteristics_to_df(billboard_df, save_title_path):
-    start_time = time.time()
-
+def create_lead_artist_column(billboard_df):
+    
     billboard_df_temp = pd.DataFrame.copy(billboard_df)
     billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Artist(s)"].str.split(" featuring ").str.get(0)
     billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" and ").str.get(0)
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" & ").str.get(0)
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(" with ").str.get(0)
+    billboard_df_temp["Lead Artist(s)"] = billboard_df_temp["Lead Artist(s)"].str.split(", ").str.get(0)
+
+    for index_artist, row in billboard_df_temp.iterrows():
+        artist_name = row["Lead Artist(s)"]
+        if artist_name in ARTIST_DICTIONARY:
+            billboard_df_temp.loc[index_artist, "Lead Artist(s)"] = ARTIST_DICTIONARY[artist_name]
+
+    return billboard_df_temp
+
+
+
+def add_songs_characteristics_to_df(billboard_df, save_title_path):
+    start_time = time.time()
+
+    billboard_df_temp = create_lead_artist_column(billboard_df)
 
     billboard_df_temp["latitude"] = ""
     billboard_df_temp["longitude"] = ""
@@ -497,10 +731,15 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
     billboard_df_temp["tempo"] = ""
     billboard_df_temp["valence"] = ""
 
-    fail_dict = {}
+    fail_df = pd.DataFrame()
+    fail_df["Artist(s)"] = ""
+    fail_df["Title"] = ""
+    fail_df["Lead Artist(s)"] = ""
+    fail_df["Year"] = ""
 
     count_access_api = 0
     year = 1900
+    index = 0
     #for artist_name in billboard_df_temp["Lead Artist(s)"]:
     for index_artist, row in billboard_df_temp.iterrows():
         year_loop = row["Year"]
@@ -510,15 +749,7 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
 
         song_title = row["Title"] 
         artist_name = row["Lead Artist(s)"]
-
-        if artist_name == "Pink":
-            artist_name = "P!nk"
-        if artist_name == "The Jackson 5":
-            artist_name = "The Jacksons"
-        if (artist_name == "Puff Daddy") or (artist_name == "P. Diddy"):
-            artist_name = "Diddy"
-        if artist_name == "Lil Jon & The East Side Boyz":
-            artist_name = "Lil Jon" 
+        artist_full_name = row["Artist(s)"]
               
         count_access_api += 1
         if count_access_api >= 120:
@@ -558,11 +789,11 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
 
         except:
             print "Artist name: ", artist_name, "- Song Title: ", song_title
-            if year in fail_dict:
-                fail_dict[year].append([artist_name, song_title])
-            else:
-                fail_dict[year] = []
-                fail_dict[year].append([artist_name, song_title])
+            fail_df.loc[index, "Artist(s)"] = artist_full_name
+            fail_df.loc[index, "Title"] = song_title
+            fail_df.loc[index, "Lead Artist(s)"] = artist_name
+            fail_df.loc[index, "Year"] = year_loop
+            index += 1
             pass
 
        
@@ -571,7 +802,7 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
     elapsed_time = time.time() - start_time
     print "Time Elapsed: ", elapsed_time
 
-    return {"billboard_df_temp": billboard_df_temp, "fail_dict": fail_dict} 
+    return {"billboard_df_temp": billboard_df_temp, "fail_df": fail_df} 
 
 
 # Look at the artists who have managed to be in the top several years with the same song
