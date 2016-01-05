@@ -3,6 +3,7 @@
 ######################################
 
 ### Imports ###
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
@@ -114,6 +115,20 @@ MULTIPLE_ARTIST_LIST = [
 
 
 ### Functions creation ###
+
+# Loads all the credentials for the lasfm annd echonest APIs
+def load_secrets():
+    secrets_file = "secrets.yaml"
+    if os.path.isfile(secrets_file):
+        import yaml  # pip install pyyaml
+        with open(secrets_file, "r") as f: 
+            doc = yaml.load(f)
+    else:
+        doc = {}
+        print "The configuration file with the credentials for the APIs is missing!"
+        print "You will not be able to use the EchoNest and the LastFM APIs."
+    return doc
+
 
 # Creation of a list of integers corresponding to all the years we are interested in
 def create_years_list(start_year, end_year):
@@ -316,7 +331,44 @@ def create_entries_by_unique_artist(billboard_df, start_year, end_year):
             billboard_rank.append(rank)
             billboard_songs.append(title)
             billboard_years.append(year)
-            continue    
+            continue 
+        elif artist == "Neil Sedaka & Elton John":
+            billboard_unique_artists.append("Neil Sedaka")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Elton John") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            continue
+        elif artist == "Neil & Dara Sedaka":
+            billboard_unique_artists.append("Neil Sedaka")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Dara Sedaka") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+        elif artist == "Donna Summer and Brooklyn Dreams":
+            billboard_unique_artists.append("Donna Summer")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Brooklyn Dreams") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+        elif artist == "Donny and Marie Osmond":
+            billboard_unique_artists.append("Donny Osmond")
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
+            billboard_unique_artists.append("Marie Osmond") 
+            billboard_rank.append(rank)
+            billboard_songs.append(title)
+            billboard_years.append(year)
         elif artist in MULTIPLE_ARTIST_LIST:
             billboard_unique_artists.append(artist) 
             billboard_rank.append(rank)
@@ -390,7 +442,9 @@ def create_entries_count_by_artist(unique_artist_df):
 
     unique_artist_df_count_and_rank = unique_artist_df_count.merge(unique_artist_df_average_rank, on="Artist(s)")
 
-    return unique_artist_df_count_and_rank.sort_values(['Counts'], ascending = 0)
+    # We sort by "Counts" and then by "Rank" so that if two artists have the same number of songs,
+    # the artist with the lowest average rank will come first.
+    return unique_artist_df_count_and_rank.sort_values(['Counts', 'Rank'], ascending = [0, 1])
 
 def create_histogram_nb_entries(counts_col, xlabel, ylabel, title, save_title_path):
     plt.figure(figsize=(12, 9))

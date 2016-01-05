@@ -80,4 +80,6 @@ CapstoneProject/IPython-Notebooks/Pyechonest_API_test.ipynb
 
 CapstoneProject/IPython-Notebooks/dataStoryFunctions.sublime-workspace
 
-*.ipynb
+*checkpoint.ipynb
+
+CapstoneProject/IPython-Notebooks/secrets.yaml
