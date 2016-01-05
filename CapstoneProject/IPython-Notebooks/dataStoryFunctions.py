@@ -50,7 +50,8 @@ ARTIST_DICTIONARY = {
         "Billy Davis": "Billy Davis Jr.",
         "M_a": "Mya",
         "Daryl Hall & John Oates": "Hall & Oates",
-        "or Tyga": "Tyga"
+        "or Tyga": "Tyga",
+        "K-Ci & JoJo /": "K-Ci & JoJo"
     }
 
 MULTIPLE_ARTIST_LIST = [
@@ -658,16 +659,13 @@ def plot_gini_coefficient(gini_coefficient_df, xlabel, ylabel, title, save_title
 
 # EchoNest API functions
 
-# NB: - Pink is named "P!nk" in EchoNest DB
-#     - The Jackson 5 are named "The Jacksons" in EchoNest DB
-
 def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_add):
     billboard_df_temp = pd.DataFrame.copy(billboard_df_artist_count)
     for item in items_to_add:
         billboard_df_temp[item] = ""
 
     count_access_api = 0
-    for artist_name in billboard_df_artist_count["Lead Artist(s)"]:
+    for artist_name in billboard_df_artist_count["Artist(s)"]:
         count_access_api += 1
         if count_access_api >= 120:
             time.sleep(60)
@@ -679,11 +677,11 @@ def add_items_to_billboard_df_artist_count(billboard_df_artist_count, items_to_a
                 if count_access_api >= 120:
                     time.sleep(60)
                     count_access_api = 0
-                index_artist = billboard_df_artist_count[billboard_df_artist_count["Lead Artist(s)"] == artist_name].index.tolist()[0]
+                index_artist = billboard_df_artist_count[billboard_df_artist_count["Artist(s)"] == artist_name].index.tolist()[0]
                 billboard_df_temp.loc[index_artist, item] = getattr(current_artist, item)
         except:
             print artist_name
-            pass
+            continue
 
     billboard_df_temp.to_csv('CSV_data/billboard_df_artist_count_with_additional_items.csv', sep=',')        
     return billboard_df_temp
@@ -794,7 +792,7 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
             fail_df.loc[index, "Lead Artist(s)"] = artist_name
             fail_df.loc[index, "Year"] = year_loop
             index += 1
-            pass
+            continue
 
        
     billboard_df_temp.to_csv(save_title_path, sep=',', encoding='utf-8')
@@ -806,3 +804,27 @@ def add_songs_characteristics_to_df(billboard_df, save_title_path):
 
 
 # Look at the artists who have managed to be in the top several years with the same song
+
+
+# Last FM API Songs
+
+def add_image_url_to_artist_count_df(unique_artist_df_count, last_fm_network):
+    unique_artist_df_count_temp = pd.DataFrame.copy(unique_artist_df_count)
+    unique_artist_df_count_temp["Image URL"] = ""
+    
+    for artist_name in unique_artist_df_count_temp["Artist(s)"]:
+        try:
+            artist_object = last_fm_network.get_artist(artist_name)
+            image_url = artist_object.get_cover_image()
+            index_artist = unique_artist_df_count_temp[unique_artist_df_count_temp["Artist(s)"] == artist_name].index.tolist()[0]
+            unique_artist_df_count_temp.loc[index_artist, "Image URL"] = image_url
+        except:
+            print artist_name
+            continue
+
+    unique_artist_df_count_temp.to_csv('CSV_data/unique_artist_df_count_with_image_url.csv', sep=',')
+    return unique_artist_df_count_temp
+
+
+
+
