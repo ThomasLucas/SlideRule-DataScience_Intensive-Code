@@ -14,26 +14,22 @@
 		fill: none;
 		stroke: #000;
 	}
-	line {
-		stroke: #000;
-	}
 
 	g.tick.major .line {
 		stroke: #000;
 	}
 
-	g.axis.label text {
-		text-anchor: middle;
-		font-size: 12px;
-		color: #000;
+	g.tick line {
+		stroke: lightgrey;
+    	opacity: 0.7;
 	}
 
-	g.labels text {
-		text-anchor: middle;
-		color: #000;
+	text.x.label, text.y.label {
+    	letter-spacing: .03em;
+    	font-weight: 700;
 	}
 
-	#gridY path.domain {
+	#gridY path.domain, #gridX path.domain {
 		display: none;
 	}
 
@@ -53,20 +49,26 @@
 	<! -- Non data-driven elements -->
 	<svg width="800" height="600">
 		<g class="chart-wrapper" transform="translate(60,20)">
+			<g class="x axis"> </g>
+			<g class="y axis"> </g>
+			<g class="grids"></g>
 			<g class="circles">
 				<g class="defs"></g>
 			</g>
 			<g class="labels"></g>
-
-			<g class="x axis">
-			</g>
-
 		</g>
 	</svg>
 
 	<script src="../js-librairies/d3.js"></script>
 	<script>
-
+	/* TODO
+		- tooltip
+		- find a way to change the stroke color when there are multiple circles at the same coordinates
+		- title
+		- click event with song details
+		- responsive design
+		- select box to choose the number of artists to display
+	*/
 		// Chart info
 		var width = 700;
 		var height = 500;
@@ -77,8 +79,10 @@
 		var countMin = 0;
 
 		var xScale = null;
+		var yScale = null;
+		var radiusScale = null;
 		// This will change and will come from a dropdown in the page
-		var nbOfArtists = 0;
+		var nbOfArtists = 50;
 
 		// Loading the CSV data
 		d3.csv("../../CSV_data/unique_artist_df_count_with_image_url.csv", function(data) {
@@ -87,38 +91,33 @@
 					"Artist(s)": d["Artist(s)"],
 					"Counts": +d["Counts"],
 					"Rank": +d["Rank"],
+					"Years of presence": +d["Years of presence"],
 					"Image URL": d["Image URL"] 
 				};
 			});
+			
 			// Scales
 			var countMax = d3.max(dataset, function(d) { return d["Counts"]; });
 			var countMin = d3.min(dataset, function(d) { return d["Counts"]; });
 			xScale = d3.scale.linear().domain([countMin - 2, countMax + 2]).range([0, width]);
 
-			// Graph creation
-			update(dataset);
-			createHorizontalAxe();
-			createGridAxis();
-			
-		});
-		  	
-			//var yScale = d3.scale.linear().domain([0, d3.max(d)]).range([0, 200]);
-			// We'll put GDP on the x-axis and well-being on the y-axis
-			//var xScale = d3.scale.linear().domain([0, 42000]).range([0, width]);
-			//var yScale = d3.scale.linear().domain([4.5, 6]).range([height, 0]);
-			//var radiusScale = d3.scale.sqrt().domain([25, 40]).range([2, 10]);
+			var yearsOfPresenceMax = d3.max(dataset, function(d) { return d["Years of presence"]; });
+			var yearsOfPresenceMin = d3.min(dataset, function(d) { return d["Years of presence"]; });
+			var lowerBound = (yearsOfPresenceMin > 2) ? yearsOfPresenceMin - 2 : 0;
+			yScale = d3.scale.linear().domain([lowerBound, yearsOfPresenceMax + 2]).range([height, 0]);
 
-		
+			/*var averageRankMax = d3.max(dataset, function(d) { return d["Rank"]; });
+			var averageRankMin = d3.min(dataset, function(d) { return d["Rank"]; });
+			radiusScale = d3.scale.sqrt().domain([1 / averageRankMax, 1 / averageRankMin]).range([5, 25]);*/
+
+			// Graph creation			
+			createAxesLabels();
+			createGridAxis();
+			update(dataset);
+		});
 
 		// Update loop for the circles
 		function update(dataset) {
-
-			/*<defs>
-			    <pattern id="image" x="0" y="0" patternUnits="userSpaceOnUse" height="1" width="1">
-			      <image x="0" y="0" xlink:href="url.png"></image>
-			    </pattern>
-			  </defs>*/
-
 			var p = container
 				.select('.defs')
 				.selectAll('pattern')
@@ -127,17 +126,13 @@
 			p.enter()
 				.append('pattern')
 				.attr('id', function(d) {return camelize(d['Artist(s)']) + '-img'})
-				.attr('x', "0%")
-				.attr('y', "0%")
-				.attr('patternUnits', 'userSpaceOnUse')
-				.attr('height', "10%")
-				.attr('width', "10%")
-				.attr('viewBox', "0 0 100 100")
+				.attr('patternContentUnits', 'objectBoundingBox')
+				.attr('height', "100%")
+				.attr('width', "100%")
 					.append('image')
-					.attr('x', "0%")
-					.attr('y', "0%")
-					.attr('width', "10%")
-					.attr('height', "10%")
+					.attr('width', '1')
+					.attr('height', '1')
+					.attr('preserveAspectRatio', 'none') // xMidYMid slice
 					.attr('xlink:href', function(d) {return d['Image URL'];});
 
 			p.exit().remove();	
@@ -153,25 +148,25 @@
 			u.exit().remove();
 
 			u.attr('cx', function(d) {return xScale(d['Counts']);})
-				.attr('cy', height / 2)//function(d) {return yScale(d['Well-being']);})
-				.attr('r', 15)
-				.style("fill", function(d) {return 'url(#' + camelize(d['Artist(s)']) + '-img)';});//function(d) {return radiusScale(d['Working hours']);});
+				.attr('cy', function(d) {return yScale(d['Years of presence']);})
+				.attr('r', '17') //function(d) {return radiusScale(1/d['Rank']);})
+				.style('stroke', '#656D78')
+				.style('fill', function(d) {return 'url(#' + camelize(d['Artist(s)']) + '-img)';});
 
-			/*u.on('mouseover', function(d) {
+			u.on('mouseover', function(d) {
 				d3.select(this)
-					.classed('selected', true);
-
-				d3.select('#status')
-					.text(d.Country + ': GDP/person is US$' + Math.round(+d.GDP) + ' & well-being is ' + d['Well-being']);
+					.style({'stroke': '#3BAFDA', 'stroke-width': '2px'})
+					.attr('r', 30)
+					.moveToFront();
 			});
 
 			u.on('mouseout', function() {
 				d3.select(this)
-					.classed('selected', false);
+					.style({'stroke': '#656D78', 'stroke-width': '1px'})
+					.attr('r', '17') //function(d) {return radiusScale(1/d['Rank']);})
+					.moveToBack();
+			});
 
-				d3.select('#status')
-					.text('');
-			});*/
 		}
 
 		// Update loop for the labels
@@ -192,34 +187,64 @@
 		}
 
 		// Axis creation
-		function createHorizontalAxe() {
+		function createAxesLabels() {
+			/*var xAxis = d3.svg.axis().scale(xScale).orient('bottom');
 			container
 				.select('.x.axis')
-				.attr('transform', 'translate(0,'+(height / 2)+')')
-				.append("line")
-						.attr("x1", 0)
-						.attr("y1", 0)
-						.attr("x2", width)
-						.attr("y2", 0)
-						.attr("stroke-width", 1)
-						.attr("stroke", "black")
-						.attr("class", "extensionLine");
+				.attr('transform', 'translate(0,'+height+')')
+				.call(xAxis);
+
+			var yAxis = d3.svg.axis().scale(yScale).orient('left');
+			container
+				.select('.y.axis')
+				.call(yAxis);*/
+
+			container.select('.x.axis')
+				.append("text")
+			    .attr("class", "x label")
+			    .attr("text-anchor", "end")
+			    .attr("x", width)
+			    .attr("y", height + 25)
+			    .text("# of songs in the Billboard Hot 100 (year end)");
+
+			 container.select('.y.axis')
+				.append("text")
+			    .attr("class", "y label")
+			    .attr("text-anchor", "end")
+			    .attr("y", -35)
+			    .attr("dy", ".75em")
+			    .attr("transform", "rotate(-90)")
+			    .text("# of years of presence in the Billboard Hot 100 (year end)");
 		}
 
 		function createGridAxis() {
 			// Define grid lines
 			var gridXAxis = d3.svg.axis()
 					.scale(xScale)
-					.orient("top")
+					.orient("bottom")
+					.ticks(5);
+
+			var gridYAxis = d3.svg.axis()
+					.scale(yScale)
+					.orient("left")
 					.ticks(5);
 
 			// Grid lines creation
-			container.append("g")         
+			container.select('.grids')
+				.append("g")         
 				.attr("class", "grid")
 				.attr("id", "gridY")
-				.attr("transform", "translate(0, 0)")
+				.attr("transform", "translate(0, "+height+")")
 				.style("stroke-dasharray", ("2, 2"))
 				.call(gridXAxis.tickSize(-height, 0, 0));
+
+			container.select('.grids')
+				.append("g")         
+				.attr("class", "grid")
+				.attr("id", "gridX")
+				.attr("transform", "translate(0, 0)")
+				.style("stroke-dasharray", ("2, 2"))
+				.call(gridYAxis.tickSize(-width, 0, 0));
 		}
 
 		function camelize(str) {
@@ -228,9 +253,21 @@
 		    	return index == 0 ? match.toLowerCase() : match.toUpperCase();
 		  	});
 		}
-		/*update(data);
-		updateLabels(data);*/
 
+		d3.selection.prototype.moveToFront = function() {
+			return this.each(function(){
+				this.parentNode.appendChild(this);
+			});
+		};
+
+		d3.selection.prototype.moveToBack = function() { 
+		    return this.each(function() { 
+		        var firstChild = this.parentNode.firstChild; 
+		        if (firstChild) { 
+		            this.parentNode.insertBefore(this, firstChild); 
+		        } 
+			}); 
+		};
 
 	</script>
 </body>
