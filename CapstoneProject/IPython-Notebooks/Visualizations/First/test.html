@@ -1,91 +1,91 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <head>
-	<title>Making a Scatter plot</title>
+	<title>Capstone Project - Visualizations</title>
+
+	<link rel="stylesheet" href="../css/example-styles.css">
+	<link rel="stylesheet" href="../css/bootstrap.min.css">
 </head>
-
-<style>
-	body {
-		font-family: "Helvetica Neue", Helvetica, sans-serif;
-		font-size: 10px;
-		font-weight: 100;
-	}
-	path {
-		fill: none;
-		stroke: #000;
-	}
-
-	g.tick.major .line {
-		stroke: #000;
-	}
-
-	g.tick line {
-		stroke: lightgrey;
-    	opacity: 0.7;
-	}
-
-	text.x.label, text.y.label {
-    	letter-spacing: .03em;
-    	font-weight: 700;
-	}
-
-	#gridY path.domain, #gridX path.domain {
-		display: none;
-	}
-
-	#status {
-		margin-left: 60px;
-		height: 20px;
-		font-size: 15px;
-		font-weight: 200;
-	}
-</style>
 
 <body>
 
-	<! -- Status div -->
-	<div id="status"></div>
-
-	<! -- Non data-driven elements -->
-	<svg width="800" height="600">
-		<g class="chart-wrapper" transform="translate(60,20)">
-			<g class="x axis"> </g>
-			<g class="y axis"> </g>
-			<g class="grids"></g>
-			<g class="circles">
-				<g class="defs"></g>
+	
+		<! -- Non data-driven elements -->
+		<svg id="chart">
+			<g class="chart-wrapper">
+				<g class="x axis"> </g>
+				<g class="y axis"> </g>
+				<g class="grids"></g>
+				<g class="circles">
+					<g class="defs"></g>
+				</g>
+				<g class="labels"></g>
 			</g>
-			<g class="labels"></g>
-		</g>
-	</svg>
+		</svg>
+	
+	<div class="container">
+	
 
-	<script src="../js-librairies/d3.js"></script>
+	</div>		
+
+
+	<script src="../js/jquery-2.1.4.min.js"></script>
+	<script src="../js/d3.js"></script>
+	<script src="../js/d3-tip.js"></script>
+	<script src="../js/bootstrap.min.js"></script>
 	<script>
 	/* TODO
-		- tooltip
-		- find a way to change the stroke color when there are multiple circles at the same coordinates
 		- title
 		- click event with song details
-		- responsive design
 		- select box to choose the number of artists to display
 	*/
 		// Chart info
-		var width = 700;
-		var height = 500;
-		var container = d3.select('svg g.chart-wrapper');
+		var margin = {top: 40, right: 40, bottom: 40, left: 40},
+		    width = parseInt(d3.select("#chart").style("width")) - margin.left - margin.right,
+		    height = parseInt(d3.select("#chart").style("height")) - margin.top - margin.bottom;
 
-		var dataset = [];
-		var countMax = 0;
-		var countMin = 0;
+		console.log(width);
+		console.log(height);
+		var svg = d3.select("#chart")
+				    .attr("width", width + margin.left + margin.right)
+				    .attr("height", height + margin.top + margin.bottom);
+				  
+		var container = svg.select('g.chart-wrapper')
+				    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		
+		// Radius details
+		var radius = 17;
+		var hoveredRadius = 30;
 
+		// Scales
 		var xScale = null;
 		var yScale = null;
 		var radiusScale = null;
+
 		// This will change and will come from a dropdown in the page
 		var nbOfArtists = 50;
 
+		// Tooltip
+		var tip = null;
+
+		// SVG lines and axis
+		var gridXAxis;
+		var gridYAxis;
+		var lineDataNext = [ { "x": 0,   "y": 0},  { "x": 5,  "y": 5}, { "x": 0,  "y": 10}];
+		var lineDataPrevious = [ { "x": 5,   "y": 0},  { "x": 0,  "y": 5}, { "x": 5,  "y": 10}];
+		var lineFunction = d3.svg.line()
+	                        .x(function(d) { return d.x; })
+	                        .y(function(d) { return d.y; })
+	                        .interpolate("linear");
+
+	
 		// Loading the CSV data
-		d3.csv("../../CSV_data/unique_artist_df_count_with_image_url.csv", function(data) {
+		var dataset = [];
+		d3.csv("../../CSV_data/unique_artist_df_count_with_image_url.csv", function(error, data) {
+			if(error){ 
+				throw error;
+			}
+
 			dataset = data.slice(0, nbOfArtists + 1).map(function(d, index) { 
 				return {
 					"Artist(s)": d["Artist(s)"],
@@ -111,13 +111,25 @@
 			radiusScale = d3.scale.sqrt().domain([1 / averageRankMax, 1 / averageRankMin]).range([5, 25]);*/
 
 			// Graph creation			
+			createToolTip();		
 			createAxesLabels();
 			createGridAxis();
 			update(dataset);
+			resize();	
 		});
 
 		// Update loop for the circles
 		function update(dataset) {
+			var nextArtistButton = container.append("path")
+                    .attr('d', lineFunction(lineDataNext))
+                    .attr('id', 'nextArtistButton')
+                    .style({'stroke-width': '2px', 'stroke': '#ED5565', 'display': 'none'});
+
+            var previousArtistButton = container.append("path")
+                    .attr('d', lineFunction(lineDataPrevious))
+                    .attr('id', 'previousArtistButton')
+                    .style({'stroke-width': '2px', 'stroke': '#ED5565', 'display': 'none'});
+
 			var p = container
 				.select('.defs')
 				.selectAll('pattern')
@@ -143,28 +155,93 @@
 				.data(dataset);
 
 			u.enter()
-				.append('circle');
+				.append('circle')
+				.attr('class', function(d) {
+					var allCircles = d3.selectAll('circle');
+					var filteredCircles = allCircles.filter(function(x) { return (d['Counts'] == x['Counts']) && (d['Years of presence'] == x['Years of presence']); })
+					
+					if(filteredCircles[0].length > 1){
+						return 'multipleArtists';
+					} else {
+						return 'singleArtist';
+					}
+				});
 
 			u.exit().remove();
 
 			u.attr('cx', function(d) {return xScale(d['Counts']);})
 				.attr('cy', function(d) {return yScale(d['Years of presence']);})
-				.attr('r', '17') //function(d) {return radiusScale(1/d['Rank']);})
-				.style('stroke', '#656D78')
+				.attr('r', radius) //function(d) {return radiusScale(1/d['Rank']);})
+				.style('stroke-width', '2px')
 				.style('fill', function(d) {return 'url(#' + camelize(d['Artist(s)']) + '-img)';});
 
 			u.on('mouseover', function(d) {
-				d3.select(this)
-					.style({'stroke': '#3BAFDA', 'stroke-width': '2px'})
-					.attr('r', 30)
+				var selectedCircle = d3.select(this);
+				var allCircles = d3.selectAll('circle');
+
+				// All other circles are faded out
+				allCircles.filter(function(x) { return d['Artist(s)'] != x['Artist(s)']; })
+				        .style('opacity', 0.2);				
+
+				selectedCircle
+					//.style('stroke', '#3BAFDA')
+					.attr('r', hoveredRadius)
 					.moveToFront();
+
+				tip.show(d); 
+
+				if(selectedCircle.attr('class') == 'multipleArtists'){
+					d3.select("#previousArtistButton")
+						.style('display', 'block')
+						.attr("transform", "translate(" + (xScale(d['Counts']) - hoveredRadius - 10) + ", "+ (yScale(d['Years of presence']) - 2.5)+")");
+
+					d3.select("#nextArtistButton")
+						.style('display', 'block')
+						.attr("transform", "translate(" + (xScale(d['Counts']) + hoveredRadius + 5) + ", "+ (yScale(d['Years of presence']) - 2.5)+")");
+
+					/*document.onkeydown =  function(e) {
+						e = e || window.event;
+					    if ((e.keyCode == '37') || (e.keyCode == '39')) { // left arrow or right arrow pressed
+					    	//selectedCircle.attr('r', radius);
+					    	//selectedCircle.style('display', 'none');
+					       	selectedCircle.moveToBack();
+					       	var allCircles = d3.selectAll('circle')
+								.style('opacity', 1);
+			        
+							selectedCircle.attr('r', radius); //function(d) {return radiusScale(1/d['Rank']);})
+								//.moveToBack();
+
+							tip.hide(d);
+
+					    }
+					};*/
+				}
 			});
 
-			u.on('mouseout', function() {
-				d3.select(this)
-					.style({'stroke': '#656D78', 'stroke-width': '1px'})
-					.attr('r', '17') //function(d) {return radiusScale(1/d['Rank']);})
-					.moveToBack();
+			u.on('mouseout', function(d) {
+				var selectedCircle = d3.select(this);
+				
+				var allCircles = d3.selectAll('circle')
+								.style('opacity', 1);
+			        
+				selectedCircle.attr('r', radius); //function(d) {return radiusScale(1/d['Rank']);})
+					//.moveToBack();
+
+				tip.hide(d);
+
+				if(selectedCircle.attr('class') == 'multipleArtists'){
+					d3.select("#nextArtistButton")
+						.style('display', 'none');
+					d3.select("#previousArtistButton")
+						.style('display', 'none');
+				}
+			});
+
+			u.on('click', function(d) {
+				var selectedCircle = d3.select(this);
+				if(selectedCircle.attr('class') == 'multipleArtists'){
+					selectedCircle.moveToBack();
+				}
 			});
 
 		}
@@ -188,17 +265,6 @@
 
 		// Axis creation
 		function createAxesLabels() {
-			/*var xAxis = d3.svg.axis().scale(xScale).orient('bottom');
-			container
-				.select('.x.axis')
-				.attr('transform', 'translate(0,'+height+')')
-				.call(xAxis);
-
-			var yAxis = d3.svg.axis().scale(yScale).orient('left');
-			container
-				.select('.y.axis')
-				.call(yAxis);*/
-
 			container.select('.x.axis')
 				.append("text")
 			    .attr("class", "x label")
@@ -219,12 +285,12 @@
 
 		function createGridAxis() {
 			// Define grid lines
-			var gridXAxis = d3.svg.axis()
+			gridXAxis = d3.svg.axis()
 					.scale(xScale)
 					.orient("bottom")
 					.ticks(5);
 
-			var gridYAxis = d3.svg.axis()
+			gridYAxis = d3.svg.axis()
 					.scale(yScale)
 					.orient("left")
 					.ticks(5);
@@ -246,6 +312,46 @@
 				.style("stroke-dasharray", ("2, 2"))
 				.call(gridYAxis.tickSize(-width, 0, 0));
 		}
+
+		function createToolTip(){
+			tip = d3.tip()
+			    .attr('class', 'd3-tip')
+			    .offset([-10, 0])
+			    .html(function(d) {
+					return "<div><span class='tooltipTitle'>" + d["Artist(s)"]+ "</span></div>" +
+					      "<div><span># Songs:</span> <span class='tooltipContents'>" + d["Counts"]+ "</span></div>" +
+					     "<div><span># Years:</span> <span class='tooltipContents'>" + d["Years of presence"]+ "</span></div>";
+				});
+
+			container.call(tip);
+		}
+
+		function resize() {
+  			// Find the new window dimensions 
+		    var width = parseInt(d3.select("#chart").style("width")) - margin.left - margin.right,
+		    	height = parseInt(d3.select("#chart").style("height")) - margin.top - margin.bottom;
+
+			// Update the range of the scale with new width/height
+			xScale.range([0, width]);
+			yScale.range([height, 0]);
+
+			container.select('#gridY')
+					.attr("transform", "translate(0, "+height+")")
+					.call(gridXAxis.tickSize(-height, 0, 0));
+
+			container.select('#gridX')
+					.call(gridYAxis.tickSize(-width, 0, 0));
+
+			container.select('.x.label')
+			    .attr("x", width)
+			    .attr("y", height + 25);
+
+			container.selectAll('circle')
+				.attr('cx', function(d) {return xScale(d['Counts']);})
+				.attr('cy', function(d) {return yScale(d['Years of presence']);});
+		}
+
+		d3.select(window).on('resize', resize); 
 
 		function camelize(str) {
 			return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
