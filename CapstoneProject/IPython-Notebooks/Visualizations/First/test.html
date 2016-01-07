@@ -246,23 +246,6 @@
 
 		}
 
-		// Update loop for the labels
-		function updateLabels(data) {
-			var u = container
-				.select('.labels')
-				.selectAll('text')
-				.data(data);
-
-			u.enter()
-				.append('text');
-
-			u.exit().remove();
-
-			u.attr('x', function(d) {return xScale(d['GDP']);})
-				.attr('y', function(d) {return yScale(d['Well-being']) - 8;})
-				.text(function(d) {return d.Country;});
-		}
-
 		// Axis creation
 		function createAxesLabels() {
 			container.select('.x.axis')
@@ -270,7 +253,7 @@
 			    .attr("class", "x label")
 			    .attr("text-anchor", "end")
 			    .attr("x", width)
-			    .attr("y", height + 25)
+			    .attr("y", height + 30)
 			    .text("# of songs in the Billboard Hot 100 (year end)");
 
 			 container.select('.y.axis')
@@ -283,6 +266,7 @@
 			    .text("# of years of presence in the Billboard Hot 100 (year end)");
 		}
 
+		// Grid lines creation
 		function createGridAxis() {
 			// Define grid lines
 			gridXAxis = d3.svg.axis()
@@ -344,7 +328,7 @@
 
 			container.select('.x.label')
 			    .attr("x", width)
-			    .attr("y", height + 25);
+			    .attr("y", height + 30);
 
 			container.selectAll('circle')
 				.attr('cx', function(d) {return xScale(d['Counts']);})
