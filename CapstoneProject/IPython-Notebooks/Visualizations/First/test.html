@@ -8,23 +8,43 @@
 </head>
 
 <body>
-
 	
-		<! -- Non data-driven elements -->
-		<svg id="chart">
-			<g class="chart-wrapper">
-				<g class="x axis"> </g>
-				<g class="y axis"> </g>
-				<g class="grids"></g>
-				<g class="circles">
-					<g class="defs"></g>
-				</g>
-				<g class="labels"></g>
+	<! -- Non data-driven elements -->
+	<svg id="chart">
+		<g class="chart-wrapper">
+			<g class="x axis"> </g>
+			<g class="y axis"> </g>
+			<g class="grids"></g>
+			<g class="circles">
+				<g class="defs"></g>
 			</g>
-		</svg>
+			<g class="labels"></g>
+		</g>
+	</svg>
 	
 	<div class="container">
-	
+		<div class="row">
+			<div class="col-md-12">
+				<div class="artistDetails">
+					<div class="artistNameTitleDiv">
+						<h3 class="artistNameTitle"></h3>
+					</div>
+					<div class="artistSongListDiv">
+						<table class='table'>
+							<thead>
+								<tr>
+									<th>Song Title</th>
+									<th>Year</th>
+									<th>Rank</th>
+								</tr>
+							</thead>
+							<tbody>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
 
 	</div>		
 
@@ -44,14 +64,14 @@
 		    width = parseInt(d3.select("#chart").style("width")) - margin.left - margin.right,
 		    height = parseInt(d3.select("#chart").style("height")) - margin.top - margin.bottom;
 
-		console.log(width);
-		console.log(height);
-		var svg = d3.select("#chart")
-				    .attr("width", width + margin.left + margin.right)
-				    .attr("height", height + margin.top + margin.bottom);
+		var svg = d3.select('#chart')
+				    .attr('width', width + margin.left + margin.right)
+				    .attr('height', height + margin.top + margin.bottom);
 				  
 		var container = svg.select('g.chart-wrapper')
-				    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+				    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+		var artistDetailsContainer = d3.select('.container').style('margin-top', (height + margin.top + margin.bottom + 5) + 'px');
 		
 		// Radius details
 		var radius = 17;
@@ -92,7 +112,8 @@
 					"Counts": +d["Counts"],
 					"Rank": +d["Rank"],
 					"Years of presence": +d["Years of presence"],
-					"Image URL": d["Image URL"] 
+					"Image URL": d["Image URL"],
+					"List of songs": d["List of songs"].split("/---/")
 				};
 			});
 			
@@ -191,25 +212,18 @@
 				tip.show(d); 
 
 				if(selectedCircle.attr('class') == 'multipleArtists'){
-					d3.select("#previousArtistButton")
-						.style('display', 'block')
-						.attr("transform", "translate(" + (xScale(d['Counts']) - hoveredRadius - 10) + ", "+ (yScale(d['Years of presence']) - 2.5)+")");
-
-					d3.select("#nextArtistButton")
-						.style('display', 'block')
-						.attr("transform", "translate(" + (xScale(d['Counts']) + hoveredRadius + 5) + ", "+ (yScale(d['Years of presence']) - 2.5)+")");
 
 					/*document.onkeydown =  function(e) {
 						e = e || window.event;
 					    if ((e.keyCode == '37') || (e.keyCode == '39')) { // left arrow or right arrow pressed
-					    	//selectedCircle.attr('r', radius);
-					    	//selectedCircle.style('display', 'none');
 					       	selectedCircle.moveToBack();
+					       	selectedCircle.attr('r', radius); 
+
 					       	var allCircles = d3.selectAll('circle')
 								.style('opacity', 1);
-			        
-							selectedCircle.attr('r', radius); //function(d) {return radiusScale(1/d['Rank']);})
-								//.moveToBack();
+
+							//d3.select("#previousArtistButton").style('display', 'none');
+							//d3.select("#nextArtistButton").style('display', 'block');
 
 							tip.hide(d);
 
@@ -223,25 +237,23 @@
 				
 				var allCircles = d3.selectAll('circle')
 								.style('opacity', 1);
-			        
-				selectedCircle.attr('r', radius); //function(d) {return radiusScale(1/d['Rank']);})
-					//.moveToBack();
 
+				selectedCircle.attr('r', radius)
+								.moveToBack();
 				tip.hide(d);
-
-				if(selectedCircle.attr('class') == 'multipleArtists'){
-					d3.select("#nextArtistButton")
-						.style('display', 'none');
-					d3.select("#previousArtistButton")
-						.style('display', 'none');
-				}
+					
 			});
 
 			u.on('click', function(d) {
 				var selectedCircle = d3.select(this);
-				if(selectedCircle.attr('class') == 'multipleArtists'){
-					selectedCircle.moveToBack();
-				}
+				
+				var artistDetails = d3.select('div.artistDetails').style('display', 'block');
+
+				artistDetails.select('.artistNameTitle')
+					.text(d['Artist(s)']);
+
+				console.log(d['List of songs']);
+
 			});
 
 		}
@@ -314,6 +326,8 @@
   			// Find the new window dimensions 
 		    var width = parseInt(d3.select("#chart").style("width")) - margin.left - margin.right,
 		    	height = parseInt(d3.select("#chart").style("height")) - margin.top - margin.bottom;
+
+		    artistDetailsContainer = d3.select('.container').style('margin-top', (height + margin.top + margin.bottom + 5) + 'px');
 
 			// Update the range of the scale with new width/height
 			xScale.range([0, width]);

@@ -13,8 +13,14 @@ body {
   position: absolute;
   right: 2.5%;
   left: 2.5%;
-  top:2.5%;
+  top: 2.5%;
   bottom: 2.5%;
+}
+
+div.artistDetails {
+  margin-top: 4%;
+  margin-bottom: 4%;
+  display: none;
 }
 
 path {
@@ -22,9 +28,7 @@ path {
   stroke: #000;
 }
 
-g.tick.major .line {
-  stroke: #000;
-}
+
 
 g.tick line {
   stroke: lightgrey;
@@ -38,13 +42,6 @@ text.x.label, text.y.label {
 
 #gridY path.domain, #gridX path.domain {
   display: none;
-}
-
-#status {
-  margin-left: 60px;
-  height: 20px;
-  font-size: 15px;
-  font-weight: 200;
 }
 
 .d3-tip div span.tooltipTitle {
@@ -64,7 +61,7 @@ circle.singleArtist {
   stroke: #656D78;
 }
 
-#nextArtistButton:hover, #previousArtistButton:hover {
+circle:hover {
   cursor: pointer;
 }
 
