@@ -456,9 +456,9 @@ def create_entries_count_by_artist(unique_artist_df):
         if unique_artist_df_count_and_rank.loc[unique_artist_index, year] == 0:
             unique_artist_df_count_and_rank.loc[unique_artist_index, "Years of presence"] += 1
         unique_artist_df_count_and_rank.loc[unique_artist_index, year] += 1
-        unique_artist_df_count_and_rank.loc[unique_artist_index, "List of songs"] += "Title: " +  title + " -Year: " + str(year) + " -Rank: " + str(rank) + "/---/"
+        unique_artist_df_count_and_rank.loc[unique_artist_index, "List of songs"] += '{"title:""' +  title + '"","year:""' + str(year) + '"","rank:""' + str(rank) + '""},'
 
-    unique_artist_df_count_and_rank["List of songs"] = unique_artist_df_count_and_rank["List of songs"].str[:-5]
+    unique_artist_df_count_and_rank["List of songs"] = unique_artist_df_count_and_rank["List of songs"].str[:-1]
 
     # We sort by "Counts" and then by "Rank" so that if two artists have the same number of songs,
     # the artist with the lowest average rank will come first.
