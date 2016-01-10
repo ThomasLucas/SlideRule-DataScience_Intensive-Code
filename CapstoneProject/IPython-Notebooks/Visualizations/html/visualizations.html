@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<head>
+	<title>Capstone Project - Visualizations</title>
+
+	<link rel='stylesheet' href='../css/visualizations-styles.css'>
+	<link rel='stylesheet' href='../css/bootstrap.min.css'>
+</head>
+
+<body>
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-12'>
+				<h1>Data Story <small>Visualizations</small></h1>
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<p>
+					The following graphs use data extracted from Wikipedia. Wikipedia has grouped data from the <mark>Billboard Hot 100</mark> rankings together. These interactive plots enable us to focus on the most popular artists regarding the Billboard Hot 100 year end ranking. The study period goes from <mark>1960</mark> to <mark>2015</mark>. 
+				</p>
+				<p>
+					Some choices have been made in the way to count the number of tracks for each artist:
+				</p>
+				<div class='well well-sm'>
+					<ul>
+						<li>
+							If a song is a featuring, the same significance has been given to each artist contribution. <br/>
+							E.g. <i>Ne-Yo featuring Juicy J - She Knows</i> will give one song for Ne-Yo and one for Juicy J.
+						</li>
+						<li>
+							If the artist name includes an '&', it is assumed that it is a band or an indivisible duo / trio... <br/>
+							E.g. <i>Kool & the Gang - Celebration</i> will give one song for Kool & the Gang.
+						</li>
+						<li>
+							If the artist name includes an 'and', I have handled two separate cases:
+							<ol>
+								<li>
+									If the song has been released before 1982, the artist has been considered as a band, as it seems very frequent to have band names like <i>Derek and the Dominos</i> in those years. <br/>
+									E.g. <i>Derek and the Dominos - Layla</i> will give one song for Derek and the Dominos.
+								</li>
+								<li>
+									If the song has been released in 1982 and after, the same significance has been given to each artist contribution. <br/>
+									E.g. <i>R. Kelly and Celine Dion - I'm Your Angel</i> will give one song for R. Kelly and one for Celine Dion.
+								</li>
+							</ol>
+						</li>
+						<li>
+							Some exceptions have been handled manually. <br/>
+							E.g. <i>Evan and Jaron - Crazy for This Girl</i> (released in 2001) will give one song for Evan and Jaron.
+						</li>
+					</ul>
+				</div>
+				<p>
+					This methodology is not perfect, but it seems reasonable and accurate enough for the study. The choice of 1982 has been done by looking into the data, and investigating manually on the band names.
+				</p>
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<h4># of Tracks in the Billboard Hot 100 (year end) vs. # of Years of presence in the Top</h4>		
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<p>
+					This graphs shows the number of tracks in the Billboard Hot 100 (year end) per artist over time vs. the number of years of presence in this ranking.
+				</p>
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<h5>How to use the graph</h5>		
+				<p>
+					This scatter plot has several custom features:
+				</p>
+				<div class='well well-sm'>
+					<ul>
+						<li>
+							When you hover over a circle, it gets bigger and a tooltip displays the name of the artist and his number of songs in the top and his number of years of presence in the Billboard Hot 100.
+						</li>
+						<li>
+							When a circle has a <span class='red'>red</span> outline, it means that two (or more) artists have the same characteristics i.e. same number of songs and same number of years of presence in the Billboard Hot 100 (year end). <br/>
+							To see the next artist, you will have to hover over the currently displayed circle and when you will stop hovering it, the next artist will appear in place of the first one.
+						</li>
+						<li>
+							You can click on an artist's circle to have more details about this singer or band. A table will show up below the graph with the name, release year and rank of all the tracks ranked in the Billboard Hot 100 for this particular artist. 
+						</li>
+						<li>
+							Using the buttons on the top right corner of the graph you can choose how many artists you want to display on the graph.
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12 numberOfArtistsSelectorParent'>
+				<div id='numberOfArtistsSelector' class='btn-group'>
+					<button type='button' class='btn btn-default' id='btn-10' data-val='10'>Top 10</button>
+					<button type='button' class='btn btn-default' id='btn-25' data-val='25'>Top 25</button>
+					<button type='button' class='btn btn-default active' id='btn-50' data-val='50'>Top 50</button>
+					<button type='button' class='btn btn-default' id='btn-100' data-val='100'>Top 100</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class='chart-container'>
+		<! -- Non data-driven elements -->
+		<svg id='chart'>
+			<g class='chart-wrapper'>
+				<g class='x axis'> </g>
+				<g class='y axis'> </g>
+				<g class='grids'></g>
+				<g class='circles'>
+					<g class='defs'></g>
+				</g>
+			</g>
+		</svg>
+	</div>
+	
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-12'>
+				<div class='bs-callout bs-callout-info artistDetails' id='artistDetails'>
+					<button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<div class='row'>
+						<div class='col-md-2 col-sm-4 col-xs-4'>
+							<div class='artistNameImageDiv'>
+								<img class='artistNameImage img-thumbnail img-responsive'>
+							</div>
+						</div>
+						<div class='col-md-10 col-sm-8 col-xs-8'>
+							<div class='artistNameTitleDiv'>
+								<h3 class='artistNameTitle'></h3>
+							</div>
+						</div>
+
+					</div>
+					<div class='row'>
+						<div class='col-md-12'>
+							<div class='artistSongListDiv'>
+								<table class='table table-hover'>
+									<thead>
+										<tr>
+											<th>Song Title</th>
+											<th>Year</th>
+											<th>Rank</th>
+										</tr>
+									</thead>
+									<tbody></tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>		
+
+	<!-- Scripts-->
+	<script src='../js/libraries/jquery-2.1.4.min.js'></script>
+	<script src='../js/libraries/d3.js'></script>
+	<script src='../js/libraries/d3-tip.js'></script>
+	<script src='../js/libraries/bootstrap.min.js'></script>
+	<script src='../js/visualizations.js'></script>
+	
+</body>
+</html>
