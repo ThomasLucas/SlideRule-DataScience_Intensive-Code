@@ -188,18 +188,6 @@ function updateCircles(dataset) {
 		artistDetails.select('.artistNameTitle')
 			.text(d['Artist(s)']);
 
-		var spotifyArtistID = null;
-		/*spotifyApi.searchArtists(d['Artist(s)'])
-			.then(function(data) {
-				spotifyArtistID = data.artists.items[0].id;
-				spotifyApi.getArtistTopTracks(spotifyArtistID, 'US', {limit: 10})
-					  .then(function(data) {
-					  		console.log(data);
-					  });
-			}, function(err) {
-				console.error(err);
-			});*/
-
 		artistDetails.select('.artistNameImage')
 			.attr('src', d['Image URL']);
 
@@ -223,17 +211,36 @@ function updateCircles(dataset) {
 						.text(songObject.year);
 					newTableRow.append('td')
 						.text('#' + songObject.rank);
-					var playerDiv = newTableRow.append('td')
-						.append('div')
-						.attr('class', 'player');
-					var audioControls = playerDiv.append('audio')
-						.attr('controls', '');
+					var playerCell = newTableRow.append('td');
+					var audioControls = playerCell.append('audio')
+						.attr('controls', '')
+						.attr('id', 'audio-' + index);
 					audioControls.append('source')
 						.attr('src', previewUrl)
 						.attr('type', 'audio/mpeg');
 					audioControls.append('source')
 						.attr('src', previewUrl)
 						.attr('type', 'audio/ogg');
+					playerCell.append('button')
+						.attr('class', 'playDisplayButton')
+						.attr('id', 'playDisplayButton-' + index)
+						.on('click', function(){
+							var selectedID = d3.select(this).attr('id').split('playDisplayButton-')[1];
+							d3.selectAll('.playDisplayButton.active').each(function(){
+								var idToPause = d3.select(this).attr('id').split('playDisplayButton-')[1];
+								if(selectedID != idToPause){
+									d3.select(this).classed('active', false);
+									d3.select('#audio-' + idToPause)[0][0].pause();
+								}
+							});
+							hasClass = d3.select(this).classed('active');
+							d3.select(this).classed('active', !hasClass);
+							if(hasClass){
+								d3.select('#audio-' + index)[0][0].pause();
+							} else {
+								d3.select('#audio-' + index)[0][0].play();
+							}
+						});
 
 					if(songObject.rank == 1){
 						newTableRow.attr('class', 'success');
