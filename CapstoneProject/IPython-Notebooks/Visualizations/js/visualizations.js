@@ -4,8 +4,8 @@
 
 /*
 
-- add track preview to the song list table
 - add small artist career graph
+- add artist bio
 
 */
 
@@ -188,6 +188,18 @@ function updateCircles(dataset) {
 		artistDetails.select('.artistNameTitle')
 			.text(d['Artist(s)']);
 
+		var spotifyArtistID = null;
+		/*spotifyApi.searchArtists(d['Artist(s)'])
+			.then(function(data) {
+				spotifyArtistID = data.artists.items[0].id;
+				spotifyApi.getArtistTopTracks(spotifyArtistID, 'US', {limit: 10})
+					  .then(function(data) {
+					  		console.log(data);
+					  });
+			}, function(err) {
+				console.error(err);
+			});*/
+
 		artistDetails.select('.artistNameImage')
 			.attr('src', d['Image URL']);
 
@@ -198,20 +210,50 @@ function updateCircles(dataset) {
 		artistTable.select('tbody').selectAll('tr').remove();
 
 		var newTableRow = null;
-		for(var index in d['List of songs']){
-			var song = d['List of songs'][index];
-			newTableRow = artistTable.select('tbody').append('tr')
+		d['List of songs'].forEach(function(songObject, index){
+			spotifyApi.searchTracks(d['Artist(s)'] + ' ' + songObject.title, {limit: 1})
+				.then(function(data) {
+					newTableRow = artistTable.select('tbody').append('tr')
 							.attr('id', 'song-' + index);
-			newTableRow.append('td')
-						.text(song.title);
-			newTableRow.append('td')
-						.text(song.year);
-			newTableRow.append('td')
-						.text('#' + song.rank);
-			if(song.rank == 1){
-				newTableRow.attr('class', 'success');
-			}
-		}
+
+					var previewUrl = data.tracks.items[0].preview_url;
+					newTableRow.append('td')
+						.text(songObject.title);
+					newTableRow.append('td')
+						.text(songObject.year);
+					newTableRow.append('td')
+						.text('#' + songObject.rank);
+					var playerDiv = newTableRow.append('td')
+						.append('div')
+						.attr('class', 'player');
+					var audioControls = playerDiv.append('audio')
+						.attr('controls', '');
+					audioControls.append('source')
+						.attr('src', previewUrl)
+						.attr('type', 'audio/mpeg');
+					audioControls.append('source')
+						.attr('src', previewUrl)
+						.attr('type', 'audio/ogg');
+
+					if(songObject.rank == 1){
+						newTableRow.attr('class', 'success');
+					}
+				}, function(err) {
+					newTableRow = artistTable.select('tbody').append('tr')
+							.attr('id', 'song-' + index);
+					newTableRow.append('td')
+						.text(songObject.title);
+					newTableRow.append('td')
+						.text(songObject.year);
+					newTableRow.append('td')
+						.text('#' + songObject.rank);
+					newTableRow.append('td');
+
+					if(songObject.rank == 1){
+						newTableRow.attr('class', 'success');
+					}
+			});
+		});
 
 		goToByScroll('artistDetails');
 	});
@@ -467,6 +509,9 @@ d3.select('.close').on('click', function(){
 	goToByScroll('chart'); 
 	d3.select('.artistDetails').style('display', 'none'); 
 });
+
+// Instantiate Spotify wrapper
+var spotifyApi = new SpotifyWebApi();
 
 // Dataset init and chart creation
 var dataset = [];
