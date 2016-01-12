@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import scipy.stats as sstats
 import time
+import re
 
 from matplotlib import gridspec
 from pyechonest import config
@@ -895,6 +896,25 @@ def add_image_url_to_artist_count_df(unique_artist_df_count, last_fm_network):
             continue
 
     unique_artist_df_count_temp.to_csv('CSV_data/unique_artist_df_count_with_image_url.csv', sep=',')
+    return unique_artist_df_count_temp
+
+def add_artist_bio_to_artist_count_df(unique_artist_df_count, last_fm_network):
+    unique_artist_df_count_temp = pd.DataFrame.copy(unique_artist_df_count)
+    unique_artist_df_count_temp["Biographie"] = ""
+    
+    for artist_name in unique_artist_df_count_temp["Artist(s)"]:
+        try:
+            artist_object = last_fm_network.get_artist(artist_name)
+            full_bio = artist.get_bio_content(language="en")
+            # Only gets the first 3 sentences of the full bio
+            bio = re.match(r'(?:[^.:;]+[.:;]){3}', full_bio).group()
+            index_artist = unique_artist_df_count_temp[unique_artist_df_count_temp["Artist(s)"] == artist_name].index.tolist()[0]
+            unique_artist_df_count_temp.loc[index_artist, "Biographie"] = bio
+        except:
+            print artist_name
+            continue
+
+    unique_artist_df_count_temp.to_csv('CSV_data/unique_artist_df_count_with_biographie.csv', sep=',')
     return unique_artist_df_count_temp
 
 
