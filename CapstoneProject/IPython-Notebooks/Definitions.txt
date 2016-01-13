@@ -1,0 +1,9 @@
+Useful definitions of some metrics used in the Echo Nest API
+
+- Familiarity (vs Hotttness ) - A numerical estimation of how familiar an artist currently is to the world. 'Familiarity' corresponds to how well known in artist is. You can look at familiarity as the likelihood that any person selected at random will have heard of the artist. Beatles have a familiarity close to 1, while a band like ‘Hot Rod Shopping Cart’ has a familiarity close to zero. 'Hotttnesss' – this corresponds to how much buzz the artist is getting right now. This is derived from many sources, including mentions on the web, mentions in music blogs, music reviews, play counts, etc.
+(http://4chanmusic.wikia.com/wiki/The_Echo_Nest)
+
+- Both are calculated based upon total activity the EchoNest developers see for those artists on the thousands of web sites that they crawl.
+
+- Familiarity is actually described as well-knownness
+

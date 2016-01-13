@@ -4,9 +4,6 @@
 
 /*
 
-- add small artist career graph
-- add artist bio
-
 */
 
 
@@ -105,6 +102,27 @@ function updateCircles(dataset) {
             .attr('id', 'previousArtistButton')
             .style({'stroke-width': '2px', 'stroke': '#ED5565', 'display': 'none'});*/
 	  
+	var jitterIndex = 0; 
+	dataset.sort(function(a,b) {
+		if(a['Counts'] > b['Counts']){ 
+			return 1;
+		}
+		else if(b['Counts'] > a['Counts']) {
+			return -1;
+		}
+		else{
+			if(a['Years of presence'] > b['Years of presence']) {
+				return 1;
+			}
+			else if(b['Years of presence'] > a['Years of presence']){
+				return -1;
+			} 
+			else {
+				return 0;
+			}
+		}
+	});
+
 	var u = container
 		.select('.circles')
 		.selectAll('circle')
@@ -114,8 +132,10 @@ function updateCircles(dataset) {
 		.append('circle')
 		.attr('class', function(d) {
 			var allCircles = d3.selectAll('circle');
-			var filteredCircles = allCircles.filter(function(x) { return (d['Counts'] == x['Counts']) && (d['Years of presence'] == x['Years of presence']); })
-			
+			var filteredCircles = allCircles.filter(function(x) {
+				return (d['Counts'] == x['Counts']) && (d['Years of presence'] == x['Years of presence']);
+			});
+
 			if(filteredCircles[0].length > 1){
 				return 'multipleArtists';
 			} else {
@@ -125,7 +145,15 @@ function updateCircles(dataset) {
 
 	u.exit().remove();
 
-	u.attr('cx', function(d) {return xScale(d['Counts']);})
+	u.attr('cx', function(d) {
+			if(d3.select(this).classed('multipleArtists')){
+				var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
+				jitterIndex++;
+				return xScale(d['Counts']) + x_jitter;
+			} else {
+				return xScale(d['Counts']);
+			}
+		})
 		.attr('cy', function(d) {return yScale(d['Years of presence']);})
 		.attr('r', radius) //function(d) {return radiusScale(1/d['Rank']);})
 		.style('stroke-width', '2px')
@@ -214,7 +242,11 @@ function updateCircles(dataset) {
 					var playerCell = newTableRow.append('td');
 					var audioControls = playerCell.append('audio')
 						.attr('controls', '')
-						.attr('id', 'audio-' + index);
+						.attr('id', 'audio-' + index)
+						.on('ended', function() {
+					          d3.select(this).currentTime = 0;
+					          d3.select('#playDisplayButton-' + index).classed('active', false);
+					     });
 					audioControls.append('source')
 						.attr('src', previewUrl)
 						.attr('type', 'audio/mpeg');
@@ -356,6 +388,8 @@ function resize() {
 		hoveredRadius = hoveredRadiusValues['Medium'];
 	} 
 
+	var jitterIndex = 0;
+
 	// Update the range of the scales with new width/height
 	xScale.range([0, width]);
 	yScale.range([height, 0]);
@@ -377,7 +411,15 @@ function resize() {
 	    .text(yAxisText);
 
 	container.selectAll('circle')
-		.attr('cx', function(d) {return xScale(d['Counts']);})
+		.attr('cx', function(d) {
+			if(d3.select(this).classed('multipleArtists')){
+				var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
+				jitterIndex++;
+				return xScale(d['Counts']) + x_jitter;
+			} else {
+				return xScale(d['Counts']);
+			}
+		})
 		.attr('cy', function(d) {return yScale(d['Years of presence']);})
 		.attr('r', radius);
 }
@@ -473,6 +515,8 @@ else {
 	radius = radiusValues['Medium'];
 	hoveredRadius = hoveredRadiusValues['Medium'];
 } 
+
+var jitter = 10;
 
 // Scales
 var xScale = null;

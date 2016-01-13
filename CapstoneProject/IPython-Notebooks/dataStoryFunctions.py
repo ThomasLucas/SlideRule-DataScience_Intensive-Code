@@ -905,7 +905,7 @@ def add_artist_bio_to_artist_count_df(unique_artist_df_count, last_fm_network):
     for artist_name in unique_artist_df_count_temp["Artist(s)"]:
         try:
             artist_object = last_fm_network.get_artist(artist_name)
-            full_bio = artist.get_bio_content(language="en")
+            full_bio = artist_object.get_bio_content(language="en")
             # Only gets the first 3 sentences of the full bio
             bio = re.match(r'(?:[^.:;]+[.:;]){3}', full_bio).group()
             index_artist = unique_artist_df_count_temp[unique_artist_df_count_temp["Artist(s)"] == artist_name].index.tolist()[0]
