@@ -429,8 +429,8 @@ def create_entries_by_unique_artist(billboard_df, start_year, end_year):
     return unique_artist_df
 
 
-def create_entries_count_by_artist(unique_artist_df):
-    unique_artist_df_temp = pd.DataFrame.copy(unique_artist_df)
+def create_entries_count_by_artist(unique_artist_df, start_year, end_year):
+    unique_artist_df_temp = pd.DataFrame.copy(unique_artist_df[(unique_artist_df['Year'] >= start_year) & (unique_artist_df['Year'] <= end_year)])
 
     count_series = unique_artist_df_temp.groupby('Artist(s)')['Artist(s)'].transform('count')
     unique_artist_df_count = pd.concat([unique_artist_df_temp['Artist(s)'], count_series], axis=1,
@@ -667,7 +667,7 @@ def plot_multiple_lorenz_curves(billboard_df, start_year, end_year, interval, st
 
 def calculate_gini_coefficient(billboard_df, start_year, end_year):
     billboard_df_artist_count = create_entries_count_by_artist(billboard_df, start_year, end_year)
-    total_nb_artists = billboard_df_artist_count["Lead Artist(s)"].count()
+    total_nb_artists = billboard_df_artist_count["Artist(s)"].count()
     mean = billboard_df_artist_count["Counts"].mean()
     rank = range(1, total_nb_artists + 1)
     sum_product = sum(billboard_df_artist_count["Counts"] * rank)
@@ -675,11 +675,11 @@ def calculate_gini_coefficient(billboard_df, start_year, end_year):
     g = (total_nb_artists + 1) / float(total_nb_artists - 1) - (2 / (total_nb_artists * (total_nb_artists - 1) * mean)) * sum_product
     return g
 
-def calculte_gini_per_year(billboard_df, start_year, end_year, interval):
+def calculte_gini_per_year(billboard_df, start_year, end_year, interval, step):
     years = []
     gini = []
-    years_range = range(start_year, end_year - interval, interval)
-    last_year = years_range[-1] + interval
+    years_range = range(start_year, end_year - step + 1, step)
+    last_year = years_range[-1] + step
     if last_year <= end_year:
         years_range.append(last_year)
 
@@ -916,6 +916,38 @@ def add_artist_bio_to_artist_count_df(unique_artist_df_count, last_fm_network):
 
     unique_artist_df_count_temp.to_csv('CSV_data/unique_artist_df_count_with_biographie.csv', sep=',')
     return unique_artist_df_count_temp
+
+
+def get_most_dominant_artist_per_years(unique_artist_df, start_year, end_year, interval, step):
+    years = []
+    artists = []
+    number_of_tracks = []
+    dominance = []
+
+    years_range = range(start_year, end_year - step + 1, step)
+    last_year = years_range[-1] + step
+    if last_year <= end_year:
+        years_range.append(last_year)
+
+    for year in years_range:
+        if year + interval <= end_year:
+            upper_bound = year + interval
+        else:
+            upper_bound = end_year
+
+        entries_count_by_artist_top5 = create_entries_count_by_artist(unique_artist_df, year, upper_bound).head()
+        for item in entries_count_by_artist_top5:
+            artists.append(item['Artist(s)'])
+            number_of_tracks.append(item['Counts'])
+            if interval > 1:
+                years.append(str(year) + " - " + str(upper_bound))
+            else:    
+                years.append(year)
+
+            # Dominance = (number of tracks for an artist during a period) / (total number of tracks during this period) + rank_bonus
+            # where rank_bonus = (1 / rank_average) ^ 2 if rank_average >= 25
+            #       rank_bonus = 0 otherwise
+
 
 
 

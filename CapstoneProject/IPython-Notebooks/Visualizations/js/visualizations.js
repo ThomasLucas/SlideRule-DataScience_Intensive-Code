@@ -292,6 +292,11 @@ function updateCircles(dataset) {
 						newTableRow.attr('class', 'success');
 					}
 			});
+			// Sort artist table by year
+			artistTable.selectAll('tbody tr') 
+		        .sort(function(a, b) {
+		            return d3.descending(a['Year'], b['Year']);
+        	});
 		});
 
 		goToByScroll('artistDetails');
@@ -481,6 +486,10 @@ function goToByScroll(id){
         scrollTop: $("#"+id).offset().top}, 'slow');
 }
 
+function zoomed() {
+  container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
 
 /* **************************************************** *
  *                 		   Main                         *
@@ -491,12 +500,17 @@ var margin = {top: 40, right: 40, bottom: 40, left: 40},
     width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
     height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
 
+/*var zoom = d3.behavior.zoom()
+    .scaleExtent([1, 10])
+    .on("zoom", zoomed);  */  
+
 var svg = d3.select('#chart')
 		    .attr('width', width + margin.left + margin.right)
 		    .attr('height', height + margin.top + margin.bottom);
 		  
 var container = svg.select('g.chart-wrapper')
 		    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+		    //.call(zoom);
 
 // Radius details
 var radiusValues = {'Small': 12, 'Medium': 17, 'Big': 30};
