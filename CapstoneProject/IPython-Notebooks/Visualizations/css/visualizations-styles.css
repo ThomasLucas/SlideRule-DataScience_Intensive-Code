@@ -20,7 +20,7 @@ div.artistDetails {
 
 div.chart-container {
   position: relative;
-  min-height: 85vh;
+  min-height: 90vh;
 }
 
 div.numberOfArtistsSelectorParent {

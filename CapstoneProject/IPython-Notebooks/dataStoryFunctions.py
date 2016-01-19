@@ -457,9 +457,9 @@ def create_entries_count_by_artist(unique_artist_df, start_year, end_year):
         if unique_artist_df_count_and_rank.loc[unique_artist_index, year] == 0:
             unique_artist_df_count_and_rank.loc[unique_artist_index, "Years of presence"] += 1
         unique_artist_df_count_and_rank.loc[unique_artist_index, year] += 1
-        unique_artist_df_count_and_rank.loc[unique_artist_index, "List of songs"] += '{"title:""' +  title + '"","year:""' + str(year) + '"","rank:""' + str(rank) + '""},'
+        unique_artist_df_count_and_rank.loc[unique_artist_index, "List of songs"] += '{"title":"' +  title + '","year":"' + str(year) + '","rank":"' + str(rank) + '"},-,'
 
-    unique_artist_df_count_and_rank["List of songs"] = unique_artist_df_count_and_rank["List of songs"].str[:-1]
+    unique_artist_df_count_and_rank["List of songs"] = unique_artist_df_count_and_rank["List of songs"].str[:-3]
 
     # We sort by "Counts" and then by "Rank" so that if two artists have the same number of songs,
     # the artist with the lowest average rank will come first.
@@ -919,36 +919,76 @@ def add_artist_bio_to_artist_count_df(unique_artist_df_count, last_fm_network):
 
 
 def get_most_dominant_artist_per_years(unique_artist_df, start_year, end_year, interval, step):
-    years = []
-    artists = []
-    number_of_tracks = []
-    dominance = []
+    tracks_per_year = 100
+    entries_count_by_artist = create_entries_count_by_artist(unique_artist_df, start_year, end_year)
+
+    dominance_per_year = {}
+    df_index_list = []
+    max_dominance_col = []
 
     years_range = range(start_year, end_year - step + 1, step)
     last_year = years_range[-1] + step
     if last_year <= end_year:
         years_range.append(last_year)
 
-    for year in years_range:
-        if year + interval <= end_year:
-            upper_bound = year + interval
-        else:
-            upper_bound = end_year
+    for index_artist, row in entries_count_by_artist.iterrows():
+        df_index_list.append(index_artist)
+        max_dominance = {"value": 0, "years":[]}
+        for year in years_range:
+            number_of_tracks_for_current_year = 0
 
-        entries_count_by_artist_top5 = create_entries_count_by_artist(unique_artist_df, year, upper_bound).head()
-        for item in entries_count_by_artist_top5:
-            artists.append(item['Artist(s)'])
-            number_of_tracks.append(item['Counts'])
+            if interval % 2 == 0:
+                start_interval = year - interval / 2 - 1  
+            else:
+                start_interval = year - interval / 2    
+
+            end_interval = year + interval / 2   
+
+            if start_interval >= start_year:
+                lower_bound = start_interval
+            else:
+                lower_bound = start_year
+
+            if end_interval <= end_year:
+                upper_bound = end_interval
+            else:
+                upper_bound = end_year
+
             if interval > 1:
-                years.append(str(year) + " - " + str(upper_bound))
+                key = "Dominance " + str(lower_bound) + " - " + str(upper_bound)
             else:    
-                years.append(year)
+                key = "Dominance " + str(year)
 
-            # Dominance = (number of tracks for an artist during a period) / (total number of tracks during this period) + rank_bonus
-            # where rank_bonus = (1 / rank_average) ^ 2 if rank_average >= 25
-            #       rank_bonus = 0 otherwise
+            for i in range(lower_bound, upper_bound):
+                number_of_tracks_for_current_year += row[i]
+            
+            current_dominance = number_of_tracks_for_current_year / float(tracks_per_year * interval)
+
+            if key not in dominance_per_year:
+                dominance_per_year[key] = []
+            
+            dominance_per_year[key].append(current_dominance)
+            if ((current_dominance > max_dominance["value"]) & (current_dominance != 0)):
+                max_dominance["value"] = current_dominance
+                max_dominance["years"] = []
+                max_dominance["years"].append(key)
+            elif ((current_dominance == max_dominance["value"]) & (current_dominance != 0)):
+                max_dominance["years"].append(key)
+
+        max_dominance_col.append('{"value":"' + str(max_dominance["value"]) + '","years":"["' + ', '.join(max_dominance["years"]) + '"]"}')
 
 
+    for key in sorted(dominance_per_year):
+        data = {"index": df_index_list, key: dominance_per_year[key]}
+        dominance_temp_df = pd.DataFrame(data, columns = ["index", key])
+        dominance_temp_df = dominance_temp_df.set_index("index")
+        entries_count_by_artist = pd.concat([entries_count_by_artist, dominance_temp_df], axis=1)
 
+    data_dominance_max = {"index": df_index_list, "Dominance Max": max_dominance_col}
+    max_dominance_temp_df = pd.DataFrame(data_dominance_max, columns = ["index", "Dominance Max"])
+    max_dominance_temp_df = max_dominance_temp_df.set_index("index")
+    entries_count_by_artist = pd.concat([entries_count_by_artist, max_dominance_temp_df], axis=1)
+
+    return entries_count_by_artist
 
 
