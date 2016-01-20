@@ -108,7 +108,7 @@
 	<div class='chart-container'>
 		<! -- Non data-driven elements -->
 		<svg id='chart'>
-			<g class='chart-wrapper'>
+			<g id='chart-wrapper1' class='chart-wrapper'>
 				<g class='x axis'> </g>
 				<g class='y axis'> </g>
 				<g class='grids'></g>
@@ -157,8 +157,59 @@
 				</div>
 			</div>
 		</div>
+	</div>	
 
-	</div>		
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-12'>		
+				<p>
+					<strong>TODO:</strong> comments on the previous graph
+				</p>
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<h4>Artist current 'Hotttnesss' vs. Artist dominance</h4>		
+			</div>
+		</div>
+		<div class='row'>
+			<div class='col-md-12'>
+				<p>
+					This second graph shows the current 'hotttness' of the artists of the Billboard Hot 100 vs. the dominance of these artists. For the sake of clarity, only the most dominant artists are displayed. You can choose how many artists you want to visualize using the buttons on the top right corner of the graph.
+				</p>
+				<p>
+					To begin with I will define what is the 'hotttnesss' and how I have calculated the dominance of the artist.
+				</p>
+				<div class='well well-sm'>
+					<ul>
+						<li>
+							<strong>'Hotttnesss'</strong> – this corresponds to how much buzz the artist is getting right now. This is derived from many sources, including mentions on the web, mentions in music blogs, music reviews, play counts, etc.
+						</li>
+						<li>
+							<strong>Dominance</strong> – this corresponds to the proportion of tracks that an artist holds during a certain period of time. In our case, we have considered a rolling window of three years as the time period to calculate the dominance. This corresponds to a total of 300 songs.
+						</li>
+					</ul>
+				</div>
+				<p>
+					The graph has the same features as the previous one.
+				</p>
+			</div>
+		</div>
+	</div>	
+
+	<div class='chart-container'>
+		<! -- Non data-driven elements -->
+		<svg id='chart2'>
+			<g id='chart-wrapper2' class='chart-wrapper'>
+				<g class='x axis'> </g>
+				<g class='y axis'> </g>
+				<g class='grids'></g>
+				<g class='circles'>
+					<g class='defs'></g>
+				</g>
+			</g>
+		</svg>
+	</div>
 
 	<!-- Scripts-->
 	<script src='../js/libraries/jquery-2.1.4.min.js'></script>
@@ -166,7 +217,8 @@
 	<script src='../js/libraries/d3-tip.js'></script>
 	<script src='../js/libraries/bootstrap.min.js'></script>
 	<script src='../js/libraries/spotify-web-api.js'></script>
-	<script src='../js/visualizations.js'></script>
+	<!--<script src='../js/visualizations-count_vs_years.js'></script>-->
+	<script src='../js/visualizations-hotttnesss_vs_dominance.js'></script>
 	
 </body>
 </html>

@@ -975,7 +975,7 @@ def get_most_dominant_artist_per_years(unique_artist_df, start_year, end_year, i
             elif ((current_dominance == max_dominance["value"]) & (current_dominance != 0)):
                 max_dominance["years"].append(key)
 
-        max_dominance_col.append('{"value":"' + str(max_dominance["value"]) + '","years":"["' + ', '.join(max_dominance["years"]) + '"]"}')
+        max_dominance_col.append('{"value":' + str(max_dominance["value"]) + ',"years":["' + '", "'.join(max_dominance["years"]) + '"]}')
 
 
     for key in sorted(dominance_per_year):

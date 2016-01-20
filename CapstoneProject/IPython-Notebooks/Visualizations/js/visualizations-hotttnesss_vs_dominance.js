@@ -25,32 +25,51 @@
 			throw error;
 		}
 
-		dataset = data.slice(0, nbOfArtists + 1).map(function(d, index) { 
-			console.log(d);
+		dataset = data.map(function(d, index) { 
 			return {
 				'Artist(s)': d['Artist(s)'],
 				'Counts': +d['Counts'],
 				'Rank': +d['Rank'],
 				'Years of presence': +d['Years of presence'],
 				'Image URL': d['Image URL'],
-				'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']')
-
+				'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']'),
+				'Familiarity': +d['familiarity'],
+				'Hotttnesss': +d['hotttnesss'],
+				'Dominance Max': JSON.parse(d['Dominance Max'])
 			};
 		});
 		
+		dataset.sort(function(a,b) {
+			if(a['Dominance Max'].value > b['Dominance Max'].value){ 
+				return -1;
+			}
+			else if(b['Dominance Max'].value > a['Dominance Max'].value) {
+				return 1;
+			}
+			else{
+				if(a['Years of presence'] > b['Years of presence']) {
+					return -1;
+				}
+				else if(b['Years of presence'] > a['Years of presence']){
+					return 1;
+				} 
+				else {
+					return 0;
+				}
+			}
+		});
+
+		dataset = dataset.slice(0, nbOfArtists + 1)
+
 		// Scales
-		var countMax = d3.max(dataset, function(d) { return d['Counts']; });
-		var countMin = d3.min(dataset, function(d) { return d['Counts']; });
-		xScale = d3.scale.linear().domain([countMin - 2, countMax + 2]).range([0, width]);
+		var hotttnesssMax = d3.max(dataset, function(d) { return d['Hotttnesss']; });
+		var hotttnesssMin = d3.min(dataset, function(d) { return d['Hotttnesss']; });
+		xScale = d3.scale.linear().domain([hotttnesssMin - 0.02, hotttnesssMax + 0.02]).range([0, width]);
 
-		var yearsOfPresenceMax = d3.max(dataset, function(d) { return d['Years of presence']; });
-		var yearsOfPresenceMin = d3.min(dataset, function(d) { return d['Years of presence']; });
-		var lowerBound = (yearsOfPresenceMin > 2) ? yearsOfPresenceMin - 2 : 0;
-		yScale = d3.scale.linear().domain([lowerBound, yearsOfPresenceMax + 2]).range([height, 0]);
-
-		/*var averageRankMax = d3.max(dataset, function(d) { return d['Rank']; });
-		var averageRankMin = d3.min(dataset, function(d) { return d['Rank']; });
-		radiusScale = d3.scale.sqrt().domain([1 / averageRankMax, 1 / averageRankMin]).range([5, 25]);*/
+		var dominanceMax = d3.max(dataset, function(d) { return d['Dominance Max'].value; });
+		var dominanceMin = d3.min(dataset, function(d) { return d['Dominance Max'].value; });
+		var lowerBound = (dominanceMin > 0.01) ? dominanceMin - 0.01 : 0;
+		yScale = d3.scale.linear().domain([lowerBound, dominanceMax + 0.01]).range([height, 0]);
 
 		// Chart creation
 
@@ -66,7 +85,7 @@
 		updateCircles(dataset);
 		// Resize
 		d3.select(window).on('resize', resize); 
-		resize();	
+		resize();
 	});
 }
 
@@ -94,30 +113,20 @@ function updatePatterns(dataset) {
 
 // Update loop for the circles
 function updateCircles(dataset) {
-	/*var nextArtistButton = container.append('path')
-            .attr('d', lineFunction(lineDataNext))
-            .attr('id', 'nextArtistButton')
-            .style({'stroke-width': '2px', 'stroke': '#ED5565', 'display': 'none'});
-
-    var previousArtistButton = container.append('path')
-            .attr('d', lineFunction(lineDataPrevious))
-            .attr('id', 'previousArtistButton')
-            .style({'stroke-width': '2px', 'stroke': '#ED5565', 'display': 'none'});*/
-	  
 	var jitterIndex = 0; 
 	dataset.sort(function(a,b) {
-		if(a['Counts'] > b['Counts']){ 
-			return 1;
-		}
-		else if(b['Counts'] > a['Counts']) {
+		if(a['Dominance Max'].value > b['Dominance Max'].value){ 
 			return -1;
+		}
+		else if(b['Dominance Max'].value > a['Dominance Max'].value) {
+			return 1;
 		}
 		else{
 			if(a['Years of presence'] > b['Years of presence']) {
-				return 1;
+				return -1;
 			}
 			else if(b['Years of presence'] > a['Years of presence']){
-				return -1;
+				return 1;
 			} 
 			else {
 				return 0;
@@ -135,7 +144,7 @@ function updateCircles(dataset) {
 		.attr('class', function(d) {
 			var allCircles = d3.selectAll('circle');
 			var filteredCircles = allCircles.filter(function(x) {
-				return (d['Counts'] == x['Counts']) && (d['Years of presence'] == x['Years of presence']);
+				return (d['Hotttnesss'] == x['Hotttnesss']) && (d['Dominance Max'].value == x['Dominance Max'].value);
 			});
 
 			if(filteredCircles[0].length > 1){
@@ -151,12 +160,13 @@ function updateCircles(dataset) {
 			if(d3.select(this).classed('multipleArtists')){
 				var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
 				jitterIndex++;
-				return xScale(d['Counts']) + x_jitter;
+				console.log(d['Hotttnesss']);
+				return xScale(d['Hotttnesss']) + x_jitter;
 			} else {
-				return xScale(d['Counts']);
+				return xScale(d['Hotttnesss']);
 			}
 		})
-		.attr('cy', function(d) {return yScale(d['Years of presence']);})
+		.attr('cy', function(d) {return yScale(d['Dominance Max'].value);})
 		.attr('r', radius) //function(d) {return radiusScale(1/d['Rank']);})
 		.style('stroke-width', '2px')
 		.style('fill', function(d) {return 'url(#' + camelize(d['Artist(s)']) + '-img)';});
@@ -175,24 +185,6 @@ function updateCircles(dataset) {
 			.each("end", function(d){ return tip.show(d, this); });
 
 		selectedCircle.moveToFront();		
-
-		/*if(selectedCircle.attr('class') == 'multipleArtists'){
-			document.onkeydown =  function(e) {
-				e = e || window.event;
-			    if ((e.keyCode == '37') || (e.keyCode == '39')) { // left arrow or right arrow pressed
-			       	selectedCircle.moveToBack();
-			       	selectedCircle.attr('r', radius); 
-
-			       	var allCircles = d3.selectAll('circle')
-						.style('opacity', 1);
-
-					//d3.select('#previousArtistButton').style('display', 'none');
-					//d3.select('#nextArtistButton').style('display', 'block');
-
-					tip.hide(d);
-			    }
-			};
-		}*/
 	});
 
 	u.on('mouseout', function(d) {
@@ -327,6 +319,7 @@ function createGridAxis() {
 	gridXAxis = d3.svg.axis()
 			.scale(xScale)
 			.orient('bottom')
+			.tickFormat(formatPercent)
 			.ticks(5);
 
 	container.select('.grids')
@@ -341,6 +334,7 @@ function createGridAxis() {
 	gridYAxis = d3.svg.axis()
 			.scale(yScale)
 			.orient('left')
+			.tickFormat(formatPercent)
 			.ticks(5);
 
 	container.select('.grids')
@@ -358,9 +352,18 @@ function createToolTip(){
 	    .attr('class', 'd3-tip')
 	    .offset([-10, 0])
 	    .html(function(d) {
+	    	var dominanceYearList = d['Dominance Max'].years;
+	    	var dominanceYearPrint = "";
+	    	for(var i = 0; i < dominanceYearList.length; i++){
+	    		dominanceYearPrint += dominanceYearList[i].split("Dominance")[1];
+	    		if(i != dominanceYearList.length - 1){
+	    			dominanceYearPrint += " / ";
+	    		}
+	    	}
 			return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
-			      "<div><span># Songs:</span> <span class='tooltipContents'>" + d['Counts']+ "</span></div>" +
-			     "<div><span># Years:</span> <span class='tooltipContents'>" + d['Years of presence']+ "</span></div>";
+			      "<div><span>Hotttnesss:</span> <span class='tooltipContents'>" + d['Hotttnesss'] + "</span></div>" +
+			     "<div><span>Dominance Max:</span> <span class='tooltipContents'>" + d['Dominance Max'].value + "</span></div>" +
+			     "<div><span>Year:</span> <span class='tooltipContents'>" + dominanceYearPrint + "</span></div>";
 		});
 
 	container.call(tip);
@@ -369,8 +372,8 @@ function createToolTip(){
 // Resize function which makes the graph responsive
 function resize() {
 	// Find the new window dimensions 
-    var width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
-    	height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
+    var width = parseInt(d3.select('#chart2').style('width')) - margin.left - margin.right,
+    	height = parseInt(d3.select('#chart2').style('height')) - margin.top - margin.bottom;
 
     var xAxisText = xAxisValues['Medium'];
     var yAxisText = yAxisValues['Medium'];
@@ -418,12 +421,12 @@ function resize() {
 			if(d3.select(this).classed('multipleArtists')){
 				var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
 				jitterIndex++;
-				return xScale(d['Counts']) + x_jitter;
+				return xScale(d['Hotttnesss']) + x_jitter;
 			} else {
-				return xScale(d['Counts']);
+				return xScale(d['Hotttnesss']);
 			}
 		})
-		.attr('cy', function(d) {return yScale(d['Years of presence']);})
+		.attr('cy', function(d) {return yScale(d['Dominance Max'].value);})
 		.attr('r', radius);
 }
 
@@ -484,7 +487,6 @@ function goToByScroll(id){
         scrollTop: $("#"+id).offset().top}, 'slow');
 }
 
-
 /* **************************************************** *
  *                 		   Main                         *
  * **************************************************** */
@@ -494,7 +496,7 @@ var margin = {top: 40, right: 40, bottom: 40, left: 40},
     width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
     height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
 
-var svg = d3.select('#chart')
+var svg = d3.select('#chart2')
 		    .attr('width', width + margin.left + margin.right)
 		    .attr('height', height + margin.top + margin.bottom);
 		  
@@ -532,19 +534,12 @@ var tip = null;
 // Grid lines
 var gridXAxis = null;
 var gridYAxis = null;
+var formatPercent = d3.format(".0%");
 
 // Axis details
-var xAxisValues = {'Small': '# of songs', 'Medium': '# of songs in the Billboard Hot 100 (year end)'};
-var yAxisValues = {'Small': '# of years', 'Medium': '# of years of presence in the Billboard Hot 100 (year end)'};
+var xAxisValues = {'Small': 'Artist Hotttnesss', 'Medium': 'Artist Hotttnesss'};
+var yAxisValues = {'Small': 'Artist Dominance', 'Medium': 'Artist Dominance'};
 
-/*
-var lineDataNext = [ { 'x': 0,   'y': 0},  { 'x': 5,  'y': 5}, { 'x': 0,  'y': 10}];
-var lineDataPrevious = [ { 'x': 5,   'y': 0},  { 'x': 0,  'y': 5}, { 'x': 5,  'y': 10}];
-var lineFunction = d3.svg.line()
-                    .x(function(d) { return d.x; })
-                    .y(function(d) { return d.y; })
-                    .interpolate('linear');
-*/
 
 // Event handlers for the button-group
 var grouppedButtons = d3.select('#numberOfArtistsSelector')
@@ -560,7 +555,7 @@ grouppedButtons.on('click', function(){
 
 // Close button for the artist details area
 d3.select('.close').on('click', function(){
-	goToByScroll('chart'); 
+	goToByScroll('chart2'); 
 	d3.select('.artistDetails').style('display', 'none'); 
 });
 
