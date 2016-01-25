@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<head>
+	<title>Billboard Hot 100: Artist tracks count vs. Number of years of presence</title>
+
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+	<style>
+		#chart {
+		  background-color: #89C4F4; 
+		  width: 95%;
+		  height: 95%;
+		  min-width: 400px;
+		  min-height: 300px;
+		  position: absolute;
+		  right: 2.5%;
+		  left: 2.5%;
+		  top: 2.5%;
+		  bottom: 2.5%;
+		  border-color: #ddd;
+		  border-width: 1px;
+		  border-radius: 4px;
+		}
+
+		#chart g.map g.countries path {
+			fill: #fff;
+			stroke: #ddd;
+		}
+
+		div.top-buffer { 
+		  margin-top: 20px; 
+		}
+
+		div.artistDetails {
+		  display: none;
+		}
+
+		div.chart-container {
+		  position: relative;
+		  min-height: 95vh;
+		}
+
+		div.numberOfArtistsSelectorParent {
+		  text-align: right;
+		}
+
+		span.red {
+		  color: #ED5565;
+		}
+
+		g.tick line {
+		  stroke: lightgrey;
+		  opacity: 0.7;
+		}
+
+		g.tick text {
+		  opacity: 0.4; 
+		}
+
+		text.x.label, text.y.label {
+		    letter-spacing: .03em;
+		    font-weight: 700;
+		    opacity: 0.7; 
+		}
+
+		#gridY path.domain, #gridX path.domain {
+		  display: none;
+		}
+
+		.d3-tip div span.tooltipTitle {
+		  font-size: 14px;
+		  color: white;
+		}
+
+		.d3-tip div span.tooltipContents {
+		  color: white;
+		}
+
+		circle.multipleArtists {
+		  stroke: #ED5565;
+		}
+
+		circle.singleArtist {
+		  stroke: #656D78;
+		}
+
+		circle:hover {
+		  cursor: pointer;
+		}
+
+		/*** D3 ToolTip style ***/
+
+		.d3-tip {
+		  line-height: 1;
+		  font: 11px sans-serif;
+		  padding: 12px;
+		  background: rgba(0, 0, 0, 0.8);
+		  color: rgb(185, 185, 185);
+		  border-radius: 2px;
+		  z-index: 3;
+		}
+
+		/* Creates a small triangle extender for the tooltip */
+		.d3-tip:after {
+		  box-sizing: border-box;
+		  display: inline;
+		  font-size: 10px;
+		  width: 100%;
+		  line-height: 1;
+		  color: rgba(0, 0, 0, 0.8);
+		  content: "\25BC";
+		  position: absolute;
+		  text-align: center;
+		}
+
+		/* Style northward tooltips differently */
+		.d3-tip.n:after {
+		  margin: -1px 0 0 0;
+		  top: 100%;
+		  left: 0;
+		}
+
+	</style>
+
+</head>
+
+<body>
+	<div class='chart-container'>
+		<! -- Non data-driven elements -->
+		<svg id='chart'>
+			<g class="map">
+  				<g class="countries"></g>
+  				<g class="cities"></g>
+  			</g>
+		</svg>
+	</div>
+	
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-12'>
+				<div class='bs-callout bs-callout-info artistDetails' id='artistDetails'>
+					<button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<div class='row'>
+						<div class='col-md-2 col-sm-4 col-xs-4'>
+							<div class='artistNameImageDiv'>
+								<img class='artistNameImage img-thumbnail img-responsive'>
+							</div>
+						</div>
+						<div class='col-md-10 col-sm-8 col-xs-8'>
+							<div class='artistNameTitleDiv'>
+								<h3 class='artistNameTitle'></h3>
+							</div>
+						</div>
+
+					</div>
+					<div class='row'>
+						<div class='col-md-12'>
+							<div class='artistSongListDiv'>
+								<table class='table table-hover'>
+									<thead>
+										<tr>
+											<th>Song Title</th>
+											<th>Year</th>
+											<th>Rank</th>
+											<th>Track Preview</th>
+										</tr>
+									</thead>
+									<tbody></tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>	
+
+	<!-- Scripts-->
+	<script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+	<script>
+		/* **************************************************** *
+		 *                 Private Functions                    *
+		 * **************************************************** */
+
+		 // Populates the dataset from a CSV file and creates the chart
+		 function createChart(){
+		 	/*var nbOfArtists = d3.select('#numberOfArtistsSelector')
+								.selectAll('.active')
+								.attr('data-val');
+
+		 	nbOfArtists = parseInt(nbOfArtists);
+
+		 	// Populates the dataset from a CSV file and creates
+			d3.csv('billboard_data.csv', function(error, data) {
+				if(error){ 
+					throw error;
+				}
+
+				dataset = data.slice(0, nbOfArtists + 1).map(function(d, index) { 
+					return {
+						'Artist(s)': d['Artist(s)'],
+						'Counts': +d['Counts'],
+						'Rank': +d['Rank'],
+						'Years of presence': +d['Years of presence'],
+						'Image URL': d['Image URL'],
+						'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']')
+
+					};
+				});
+				
+				// Scales
+				var countMax = d3.max(dataset, function(d) { return d['Counts']; });
+				var countMin = d3.min(dataset, function(d) { return d['Counts']; });
+				xScale = d3.scale.linear().domain([countMin - 2, countMax + 2]).range([0, width]);
+
+				var yearsOfPresenceMax = d3.max(dataset, function(d) { return d['Years of presence']; });
+				var yearsOfPresenceMin = d3.min(dataset, function(d) { return d['Years of presence']; });
+				var lowerBound = (yearsOfPresenceMin > 2) ? yearsOfPresenceMin - 2 : 0;
+				yScale = d3.scale.linear().domain([lowerBound, yearsOfPresenceMax + 2]).range([height, 0]);
+
+				// Chart creation
+
+				// Tooltip creation			
+				createToolTip();
+				// Axis label creation		
+				createAxesLabels();
+				// Gridlines creation
+				createGridAxis();
+				// Patterns creation
+				updatePatterns(dataset);
+				// Circles creation
+				updateCircles(dataset);
+				// Resize
+				d3.select(window).on('resize', resize); 
+				resize();	
+			});*/
+			d3.json('countries.geo.json', function(err, geojson) {
+				countryData = geojson;
+				countries();
+
+				d3.csv('billboard_df-final.csv', function(error, data) {
+					if(error){ 
+						throw error;
+					}
+					var d;
+					var obj;
+					for(var i in data){
+						d = data[i];
+
+						if(!(d['Year'] in dataset)){
+							dataset[+d['Year']] = [];
+						}
+						obj = {
+							'Artist(s)': d['Artist(s)'],
+							'Title': d['Title'],
+							'Location': d['location'],
+							'Coordinates': {
+								'Longitude': +d['longitude'],
+								'Latitude': +d['latitude']
+							},
+							'Num': +d['Num'],
+							'Year': +d['Year']
+						};
+						dataset[d['Year']].push(obj);
+
+					}
+					console.log(dataset);
+					updateArtistCities();
+				});
+			});
+
+		}
+
+		function countries() {
+			var geoGenerator = d3.geo.path()
+			    .projection(projection);
+
+			d3.select('svg g.map g.countries')
+				.selectAll('path')
+				.data(countryData.features)
+				.enter()
+				.append('path')
+				.attr('d', geoGenerator);
+		}
+
+		function updateArtistCities(){
+			/*var popMin = d3.min(cityData.features, function(d){ return (d.properties.POP2015 != null) ? d.properties.POP2015 : 0;});
+			var popMax = d3.max(cityData.features, function(d){ return (d.properties.POP2015 != null) ? d.properties.POP2015 : 0;});
+			var populationScale = d3.scale.linear().domain([popMin, popMax]).range(['2', '10']);*/
+
+			// Draw a circle for each city
+			var u = d3.select('svg g.map g.cities')
+						.selectAll('circle')
+						.data(dataset[1988]);
+
+			u.enter()
+				.append('circle')
+				.attr('data-number', function(d) {
+					var allCircles = d3.selectAll('circle');
+					var filteredCircles = allCircles.filter(function(x) {
+						return (d['Coordinates']['Longitude'] == x['Coordinates']['Longitude']) && (d['Coordinates']['Latitude'] == x['Coordinates']['Latitude']);
+					});
+
+					return filteredCircles[0].length;
+				});
+			
+			u.exit().remove();
+
+			u.attr('cx', function(d) {	
+			    	return projection([d['Coordinates']['Longitude'], d['Coordinates']['Latitude']])[0];
+			    })
+			    .attr('cy', function(d) {
+			      	return projection([d['Coordinates']['Longitude'], d['Coordinates']['Latitude']])[1];
+			    })
+			    .attr('r', function(d) {
+			    	if(d['Coordinates']['Longitude'] != "" && d['Coordinates']['Latitude'] != ""){
+			    		return +d3.select(this).attr('data-number') * 2;
+			    	} else {
+			    		return 0;
+			    	}
+			    })
+			    .attr('fill', '#044B94')
+			    .attr('stroke', '#044B94')
+			    .attr('fill-opacity', '0.4');
+		    /*.attr('class', function(d) {
+		    	return str = d.properties.NAME.replace(/[\s+,.]/g, '');
+		    })
+		    .attr('stroke', 'black')
+		    .on('mouseover', function(d){
+		    	d3.select('svg g.labels text.' + d.properties.NAME.replace(/[\s+,.]/g, ''))
+		    		.style('display', 'block')
+		    		.attr('font-weight', 'bold')
+		    		.style('pointer-events', 'none');
+		    })
+		    .on('mouseout', function(d){
+		    	d3.select('svg g.labels text.' + d.properties.NAME.replace(/[\s+,.]/g, ''))
+		    		.style('display', 'none')
+		    		.attr('font-weight', 'normal')
+		    		.style('pointer-events', 'auto');
+		    });*/
+
+			// City labels
+			/*d3.select('svg g.labels')
+				.selectAll('text')
+		    .data(cityData.features)
+			  .enter()
+			  .append('text')
+		    .attr('transform', function(d) { return 'translate(' + projection(d.geometry.coordinates) + ')'; })
+		   	.style('display', 'none')
+		    .text(function(d) { return d.properties.NAME + " - Population: " + d.properties.POP2015 * 100; })
+		    .attr('class', function(d) {
+		    	return str = d.properties.NAME.replace(/[\s+,.]/g, '');
+		    });*/
+
+		}
+
+		// Tooltip creation (uses the .tip() function from the d3-tip js library)
+		function createToolTip(){
+			tip = d3.tip()
+			    .attr('class', 'd3-tip')
+			    .offset([-10, 0])
+			    .html(function(d) {
+					return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
+					      "<div><span># Songs:</span> <span class='tooltipContents'>" + d['Counts']+ "</span></div>" +
+					     "<div><span># Years:</span> <span class='tooltipContents'>" + d['Years of presence']+ "</span></div>";
+				});
+
+			container.call(tip);
+		}
+
+		// Resize function which makes the graph responsive
+		function resize() {
+			// Find the new window dimensions 
+		    var width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
+		    	height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
+
+		    var xAxisText = xAxisValues['Medium'];
+		    var yAxisText = yAxisValues['Medium'];
+		    if((height + margin.top + margin.bottom) <= 370){
+				yAxisText = yAxisValues['Small'];
+			}
+		    if(((width + margin.left + margin.right) >= 1500) && ((height + margin.top + margin.bottom) >= 700)){
+				radius = radiusValues['Big'];
+				hoveredRadius = hoveredRadiusValues['Big'];
+			} else if (((width + margin.left + margin.right) <= 500) && ((height + margin.top + margin.bottom) <= 400)){
+				radius = radiusValues['Small'];
+				hoveredRadius = hoveredRadiusValues['Small'];
+				xAxisText = xAxisValues['Small'];
+				yAxisText= yAxisValues['Small'];
+			} 
+			else {
+				radius = radiusValues['Medium'];
+				hoveredRadius = hoveredRadiusValues['Medium'];
+			} 
+
+			var jitterIndex = 0;
+
+			// Update the range of the scales with new width/height
+			xScale.range([0, width]);
+			yScale.range([height, 0]);
+
+			// Update all the existing elements (gridlines, axis text, circles)
+			container.select('#gridY')
+					.attr('transform', 'translate(0, '+height+')')
+					.call(gridXAxis.tickSize(-height - 15, 0, 0));
+
+			container.select('#gridX')
+					.call(gridYAxis.tickSize(-width, 0, 0));
+
+			container.select('.x.label')
+			    .attr('x', width)
+			    .attr('y', height + 30)
+			    .text(xAxisText);
+
+			container.select('.y.label')
+			    .text(yAxisText);
+
+			container.selectAll('circle')
+				.attr('cx', function(d) {
+					if(d3.select(this).classed('multipleArtists')){
+						var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
+						jitterIndex++;
+						return xScale(d['Counts']) + x_jitter;
+					} else {
+						return xScale(d['Counts']);
+					}
+				})
+				.attr('cy', function(d) {return yScale(d['Years of presence']);})
+				.attr('r', radius);
+		}
+
+		function clearGraph(){
+			clearGrids();
+			clearPatterns();
+			clearCircles();
+			clearAxisTitles();
+		}
+
+		function clearGrids(){
+			d3.select('.grids').selectAll('g').remove();
+		}
+
+		function clearPatterns(){
+			d3.select('.defs').selectAll('pattern').remove();
+		}
+
+		function clearCircles(){
+			d3.select('.circles').selectAll('circle').remove();
+		}
+
+		function clearAxisTitles(){
+			d3.select('.x.axis').selectAll('text').remove();
+			d3.select('.y.axis').selectAll('text').remove();
+		}
+
+		// Function which takes a string and return its camelized version (useful for DOM elements ID)
+		function camelize(str) {
+			return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
+		    	if (+match === 0) return ''; // or if (/\s+/.test(match)) for white spaces
+		    	return index == 0 ? match.toLowerCase() : match.toUpperCase();
+		  	});
+		}
+
+		// Function which put the current element to the front.
+		// This is useful as d3 renders the last inserted element on the front.
+		d3.selection.prototype.moveToFront = function() {
+			return this.each(function(){
+				this.parentNode.appendChild(this);
+			});
+		};
+
+		// Function which put the current element to the back
+		d3.selection.prototype.moveToBack = function() { 
+		    return this.each(function() { 
+		        var firstChild = this.parentNode.firstChild; 
+		        if (firstChild) { 
+		            this.parentNode.insertBefore(this, firstChild); 
+		        } 
+			}); 
+		};
+
+		// This is a functions that scrolls to #{blah}link
+		function goToByScroll(id){
+		    // Scroll
+		    $('html,body').animate({
+		        scrollTop: $("#"+id).offset().top}, 'slow');
+		}
+
+
+
+		/* **************************************************** *
+		 *                 		   Main                         *
+		 * **************************************************** */
+
+		// Chart info
+		var margin = {top: 40, right: 40, bottom: 40, left: 40},
+		    width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
+		    height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
+
+		var svg = d3.select('#chart')
+				    .attr('width', width + margin.left + margin.right)
+				    .attr('height', height + margin.top + margin.bottom);
+				  
+		var container = svg.select('g.map')
+				    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+		// Radius details
+		/*var radiusValues = {'Small': 12, 'Medium': 17, 'Big': 30};
+		var hoveredRadiusValues = {'Small': 22, 'Medium': 30, 'Big': 40};
+
+		var radius = null;
+		var hoveredRadius = null;
+		if(((width + margin.left + margin.right) >= 1500) && ((height + margin.top + margin.bottom) >= 700)){
+			radius = radiusValues['Big'];
+			hoveredRadius = hoveredRadiusValues['Big'];
+		} else if (((width + margin.left + margin.right) <= 500) && ((height + margin.top + margin.bottom) <= 400)){
+			radius = radiusValues['Small'];
+			hoveredRadius = hoveredRadiusValues['Small'];
+		} 
+		else {
+			radius = radiusValues['Medium'];
+			hoveredRadius = hoveredRadiusValues['Medium'];
+		} */
+
+		var countryData, cityData;
+
+		// Projection function
+		var projection = d3.geo.mercator()
+		    .center([0, 0])
+		    .scale(140)
+		    .translate([480, 325]);
+
+		var jitter = 10;
+
+		// Scales
+		var xScale = null;
+		var yScale = null;
+		var radiusScale = null;
+
+		// Tooltip
+		var tip = null;
+
+		// Grid lines
+		var gridXAxis = null;
+		var gridYAxis = null;
+
+		// Axis details
+		var xAxisValues = {'Small': '# of songs', 'Medium': '# of songs in the Billboard Hot 100 (year end)'};
+		var yAxisValues = {'Small': '# of years', 'Medium': '# of years of presence in the Billboard Hot 100 (year end)'};
+
+		// Dataset init and chart creation
+		var dataset = [];
+		createChart();
+	</script>	
+</body>
+</html>
