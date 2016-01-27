@@ -132,6 +132,12 @@
 		  height: 50px;
 		}
 
+		/* Zoom buttons */
+		.btn-group-vertical {
+			margin-top: 30px;
+			z-index: 10;
+		}
+
 	</style>
 
 </head>
@@ -145,8 +151,19 @@
 				</div>
 			</div>
 		</div>
+		
 	</div>
 	<div class='chart-container'>
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-offset-11 col-md-1'>
+				<div class="btn-group-vertical">
+				  <button type="button" data-zoom="+1" class="btn btn-default btn-sm button-zoom"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
+				  <button type="button" data-zoom="-1" class="btn btn-default btn-sm button-zoom"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></button>
+				</div>
+			</div>
+		</div>
+		</div>
 		<! -- Non data-driven elements -->
 		<svg id='chart'>
 			<g class="map">
@@ -292,7 +309,7 @@
 						dataset[d['Year']].push(obj);
 
 					}
-					console.log(dataset);
+
 					updateArtistCities();
 
 					d3.select("#slider") 
@@ -312,12 +329,19 @@
 							})
 							.playButton(true) 
 							.playbackRate(0.2)
-							.loop(true)
+							.loop(false)
 					    );
+
+					callZoom();
 				});
 			});
 
 		}
+
+		function callZoom(){
+			svg.call(zoom)
+    			.call(zoom.event);
+    	}
 
 		function countries() {
 			var geoGenerator = d3.geo.path()
@@ -537,7 +561,55 @@
 		        scrollTop: $("#"+id).offset().top}, 'slow');
 		}
 
+		// Zoom functions
+		function zoomed() {
+		    container.attr("transform",
+		        "translate(" + zoom.translate() + ")" +
+		        "scale(" + zoom.scale() + ")"
+		    );
+		}
 
+		function interpolateZoom (translate, scale) {
+		    var self = this;
+		    return d3.transition().duration(350).tween("zoom", function () {
+		        var iTranslate = d3.interpolate(zoom.translate(), translate),
+		            iScale = d3.interpolate(zoom.scale(), scale);
+		        return function (t) {
+		            zoom
+		                .scale(iScale(t))
+		                .translate(iTranslate(t));
+		            zoomed();
+		        };
+		    });
+		}
+
+		function clicked(){
+			var clicked = d3.event.target,
+		        direction = 1,
+		        factor = 0.2,
+		        target_zoom = 1,
+		        center = [width / 2, height / 2],
+		        extent = zoom.scaleExtent(),
+		        translate = zoom.translate(),
+		        translate0 = [],
+		        l = [],
+		        view = {x: translate[0], y: translate[1], k: zoom.scale()};
+
+		    d3.event.preventDefault();
+		    direction = +this.getAttribute("data-zoom")
+		    target_zoom = zoom.scale() * (1 + factor * direction);
+
+		    if (target_zoom < extent[0] || target_zoom > extent[1]) { return false; }
+
+		    translate0 = [(center[0] - view.x) / view.k, (center[1] - view.y) / view.k];
+		    view.k = target_zoom;
+		    l = [translate0[0] * view.k + view.x, translate0[1] * view.k + view.y];
+
+		    view.x += center[0] - l[0];
+		    view.y += center[1] - l[1];
+
+		    interpolateZoom([view.x, view.y], view.k);
+		}
 
 		/* **************************************************** *
 		 *                 		   Main                         *
@@ -551,9 +623,14 @@
 		var svg = d3.select('#chart')
 				    .attr('width', width + margin.left + margin.right)
 				    .attr('height', height + margin.top + margin.bottom);
-				  
+		
+		// Zoom definition
+		var zoom = d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+		d3.selectAll('.button-zoom').on('click', clicked);
+
 		var container = svg.select('g.map')
-				    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+				    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+				    .call(zoom);
 
 		// Radius details
 		/*var radiusValues = {'Small': 12, 'Medium': 17, 'Big': 30};
@@ -583,7 +660,7 @@
 		var projection = d3.geo.mercator()
 		    .center([0, 0])
 		    .scale(140)
-		    .translate([480, 325]);
+		    .translate([480, 325]);    
 
 		var jitter = 10;
 
