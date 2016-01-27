@@ -5,6 +5,8 @@
 
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 
+	<link rel="stylesheet" href="https://cdn.rawgit.com/tmcw-up-for-adoption/chroniton/gh-pages/chroniton-example.css">
+
 	<style>
 		#chart {
 		  background-color: #89C4F4; 
@@ -120,11 +122,30 @@
 		  left: 0;
 		}
 
+		/* Slider additional CSS */
+		#slider {
+		  position: absolute;
+		  left: 50%;
+		  margin-left: -300px;
+		  bottom: 20px;
+		  width: 600px;
+		  height: 50px;
+		}
+
 	</style>
 
 </head>
 
 <body>
+	<div class='container'>
+		<div class='row'>
+			<div class='col-md-12'>
+				<div class='yearTitle'>
+					<h3></h3>
+				</div>
+			</div>
+		</div>
+	</div>
 	<div class='chart-container'>
 		<! -- Non data-driven elements -->
 		<svg id='chart'>
@@ -134,6 +155,8 @@
   			</g>
 		</svg>
 	</div>
+
+	<div id="slider"></div>
 	
 	<div class='container'>
 		<div class='row'>
@@ -179,6 +202,7 @@
 	<script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 	<script src="http://d3js.org/topojson.v1.min.js"></script>
+	<script src="https://cdn.rawgit.com/tmcw-up-for-adoption/chroniton/gh-pages/chroniton-only.js"></script>
 	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 	<script>
@@ -270,6 +294,26 @@
 					}
 					console.log(dataset);
 					updateArtistCities();
+
+					d3.select("#slider") 
+					    .call(chroniton()  
+					        .domain([new Date(startYear, 1, 1), new Date(endYear, 1, 1)]) 
+					        .labelFormat(function(date) {
+					          return Math.ceil(date.getFullYear())  
+					        })
+					        .width(600) 
+					        .on('change', function(date) { 
+							  var newYear = Math.ceil(date.getFullYear()); 
+							  if (newYear != currentYear) {
+							    currentYear = newYear;
+							    d3.select('svg g.map g.cities').selectAll("path").remove(); 
+							    updateArtistCities();
+							  }
+							})
+							.playButton(true) 
+							.playbackRate(0.2)
+							.loop(true)
+					    );
 				});
 			});
 
@@ -292,10 +336,12 @@
 			var popMax = d3.max(cityData.features, function(d){ return (d.properties.POP2015 != null) ? d.properties.POP2015 : 0;});
 			var populationScale = d3.scale.linear().domain([popMin, popMax]).range(['2', '10']);*/
 
+			d3.select("div.yearTitle h3").html("Billboard HOT 100 - Artists location in " + currentYear);
+
 			// Draw a circle for each city
 			var u = d3.select('svg g.map g.cities')
 						.selectAll('circle')
-						.data(dataset[1988]);
+						.data(dataset[currentYear]);
 
 			u.enter()
 				.append('circle')
@@ -326,6 +372,7 @@
 			    .attr('fill', '#044B94')
 			    .attr('stroke', '#044B94')
 			    .attr('fill-opacity', '0.4');
+
 		    /*.attr('class', function(d) {
 		    	return str = d.properties.NAME.replace(/[\s+,.]/g, '');
 		    })
@@ -527,6 +574,10 @@
 		} */
 
 		var countryData, cityData;
+
+		var startYear = 1960;
+		var endYear = 2015;
+		var currentYear = startYear;
 
 		// Projection function
 		var projection = d3.geo.mercator()
