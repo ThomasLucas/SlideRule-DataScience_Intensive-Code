@@ -17,6 +17,9 @@ from pyechonest import song
 from pyechonest import artist
 from pandas.io.json import json_normalize
 
+# Geopy
+from geopy.geocoders import Nominatim
+
 ### Global variables ###
 ARTIST_DICTIONARY = {
         "Pink": "P!nk",
@@ -990,5 +993,46 @@ def get_most_dominant_artist_per_years(unique_artist_df, start_year, end_year, i
     entries_count_by_artist = pd.concat([entries_count_by_artist, max_dominance_temp_df], axis=1)
 
     return entries_count_by_artist
+
+
+def getTrackCountryOfOrigin(billboard_df_final):
+    geolocator = Nominatim()
+    track_state_of_origin = []
+    track_country_of_origin = []
+    for index_artist, row in billboard_df_final.iterrows():
+        if (not pd.isnull(row['latitude'])) & (not pd.isnull(row['longitude'])):
+            try:
+                location = geolocator.reverse(str(row['latitude']) +',' + str(row['longitude']), language='en')
+                state = location.raw['address']['state']
+                if state == "Puerto Rico":
+                    country = "Puerto Rico"
+                else:
+                    country = location.raw['address']['country']
+                    if country == "The Netherlands":
+                        country = "Netherlands"
+            except:
+                print row["Artist(s)"]
+                country = "" 
+                state = ""
+        else:
+            country = ""
+            state = ""
+        
+        track_country_of_origin.append(country)
+        if country == "United States of America":
+            track_state_of_origin.append(state)
+        else:
+            track_state_of_origin.append("")
+
+    return [track_country_of_origin, track_state_of_origin]
+
+def addTrackCountryOfOriginToDF(billboard_df_final):
+    country_and_state_array = getTrackCountryOfOrigin(billboard_df_final)
+    country_and_state_dict = {"country": country_and_state_array[0], "state": country_and_state_array[1]}
+    track_country_and_state_of_origin_df = pd.DataFrame(country_and_state_dict, columns = ["country", "state"])
+    billboard_df_final_new = pd.concat([billboard_df_final, track_country_and_state_of_origin_df], axis=1)
+
+    billboard_df_final_new.to_csv('CSV_data/billboard_df_final_new.csv', sep=',')
+    return billboard_df_final_new
 
 

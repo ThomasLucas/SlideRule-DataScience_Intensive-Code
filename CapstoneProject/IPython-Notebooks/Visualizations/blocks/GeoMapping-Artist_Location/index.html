@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset='utf-8'>
 <head>
-	<title>Billboard Hot 100: Artist tracks count vs. Number of years of presence</title>
+	<title>Billboard Hot 100: Artist Location</title>
 
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 
@@ -9,7 +9,7 @@
 
 	<style>
 		#chart {
-		  background-color: #f7f7f9; 
+		  background-color: #fff; 
 		  width: 95%;
 		  height: 95%;
 		  min-width: 400px;
@@ -25,8 +25,9 @@
 		}
 
 		#chart g.map g.countries path {
-			fill: #e0f3db;
-			stroke: #ddd;
+			fill: rgb(255, 255, 217);
+			stroke: #000;
+			stroke-width: 0.4px;
 		}
 
 		div.top-buffer { 
@@ -158,8 +159,8 @@
 		<div class='row'>
 			<div class='col-md-offset-11 col-md-1'>
 				<div class="btn-group-vertical">
-				  <button type="button" data-zoom="+1" class="btn btn-default btn-sm button-zoom"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
-				  <button type="button" data-zoom="-1" class="btn btn-default btn-sm button-zoom"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></button>
+				  <button type="button" data-zoom="+1" class="btn btn-default btn-xs button-zoom"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
+				  <button type="button" data-zoom="-1" class="btn btn-default btn-xs button-zoom"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></button>
 				</div>
 			</div>
 		</div>
@@ -281,7 +282,7 @@
 			});*/
 			d3.json('countries.geo.json', function(err, geojson) {
 				countryData = geojson;
-				countries();
+				updateCountries();
 
 				d3.csv('billboard_df-final.csv', function(error, data) {
 					if(error){ 
@@ -307,9 +308,11 @@
 							'Year': +d['Year']
 						};
 						dataset[d['Year']].push(obj);
-
 					}
 
+					// Tooltip creation			
+					createToolTip();
+					// Artist cities circles creation	
 					updateArtistCities();
 
 					d3.select("#slider") 
@@ -328,7 +331,7 @@
 							  }
 							})
 							.playButton(true) 
-							.playbackRate(0.2)
+							.playbackRate(0.15)
 							.loop(false)
 					    );
 
@@ -343,7 +346,7 @@
     			.call(zoom.event);
     	}
 
-		function countries() {
+		function updateCountries() {
 			var geoGenerator = d3.geo.path()
 			    .projection(projection);
 
@@ -352,21 +355,21 @@
 				.data(countryData.features)
 				.enter()
 				.append('path')
+				.attr('class', function(d){
+					return d.properties.name;
+				})
 				.attr('d', geoGenerator);
 		}
 
 		function updateArtistCities(){
-			/*var popMin = d3.min(cityData.features, function(d){ return (d.properties.POP2015 != null) ? d.properties.POP2015 : 0;});
-			var popMax = d3.max(cityData.features, function(d){ return (d.properties.POP2015 != null) ? d.properties.POP2015 : 0;});
-			var populationScale = d3.scale.linear().domain([popMin, popMax]).range(['2', '10']);*/
-
 			d3.select("div.yearTitle h3").html("Billboard HOT 100 - Artists location in " + currentYear);
 
-			// Draw a circle for each city
+			// Draw a circle for each location
 			var u = d3.select('svg g.map g.cities')
 						.selectAll('circle')
 						.data(dataset[currentYear]);
 
+			var maxItems = 0;
 			u.enter()
 				.append('circle')
 				.attr('data-number', function(d) {
@@ -375,9 +378,14 @@
 						return (d['Coordinates']['Longitude'] == x['Coordinates']['Longitude']) && (d['Coordinates']['Latitude'] == x['Coordinates']['Latitude']);
 					});
 
+					if(filteredCircles[0].length >= maxItems){
+						maxItems = filteredCircles[0].length;
+					}
 					return filteredCircles[0].length;
 				});
 			
+			radiusScale = d3.scale.sqrt().domain([1, 6]).range([2, 6]);
+
 			u.exit().remove();
 
 			u.attr('cx', function(d) {	
@@ -388,59 +396,41 @@
 			    })
 			    .attr('r', function(d) {
 			    	if(d['Coordinates']['Longitude'] != "" && d['Coordinates']['Latitude'] != ""){
-			    		return +d3.select(this).attr('data-number') * 2;
+			    		var dataNumber = d3.select(this).attr('data-number');
+			    		return radiusScale(dataNumber);
 			    	} else {
 			    		return 0;
 			    	}
 			    })
 			    .attr('fill', '#044B94')
-			    .attr('stroke', '#044B94')
 			    .attr('fill-opacity', '0.4');
 
-		    /*.attr('class', function(d) {
-		    	return str = d.properties.NAME.replace(/[\s+,.]/g, '');
-		    })
-		    .attr('stroke', 'black')
-		    .on('mouseover', function(d){
-		    	d3.select('svg g.labels text.' + d.properties.NAME.replace(/[\s+,.]/g, ''))
-		    		.style('display', 'block')
-		    		.attr('font-weight', 'bold')
-		    		.style('pointer-events', 'none');
-		    })
-		    .on('mouseout', function(d){
-		    	d3.select('svg g.labels text.' + d.properties.NAME.replace(/[\s+,.]/g, ''))
-		    		.style('display', 'none')
-		    		.attr('font-weight', 'normal')
-		    		.style('pointer-events', 'auto');
-		    });*/
+		    u.on('mouseover', function(d) {
+				var selectedCircle = d3.select(this);
+				var allCircles = d3.selectAll('circle');
 
-			// City labels
-			/*d3.select('svg g.labels')
-				.selectAll('text')
-		    .data(cityData.features)
-			  .enter()
-			  .append('text')
-		    .attr('transform', function(d) { return 'translate(' + projection(d.geometry.coordinates) + ')'; })
-		   	.style('display', 'none')
-		    .text(function(d) { return d.properties.NAME + " - Population: " + d.properties.POP2015 * 100; })
-		    .attr('class', function(d) {
-		    	return str = d.properties.NAME.replace(/[\s+,.]/g, '');
-		    });*/
+				selectedCircle.attr('stroke', '#044B94');				
 
-		}
+				allCircles.filter(function(x) { return d['Artist(s)'] != x['Artist(s)']; })
+				        .style('opacity', 0.2);	
 
-		// Tooltip creation (uses the .tip() function from the d3-tip js library)
-		function createToolTip(){
-			tip = d3.tip()
-			    .attr('class', 'd3-tip')
-			    .offset([-10, 0])
-			    .html(function(d) {
-					return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
-					      "<div><span># Songs:</span> <span class='tooltipContents'>" + d['Counts']+ "</span></div>" +
-					     "<div><span># Years:</span> <span class='tooltipContents'>" + d['Years of presence']+ "</span></div>";
-				});
+				tip.show(d);
 
-			container.call(tip);
+				selectedCircle.moveToFront();		
+			});
+
+			u.on('mouseout', function(d) {
+				var selectedCircle = d3.select(this);
+				selectedCircle.attr('stroke', '');
+				
+				var allCircles = d3.selectAll('circle')
+								.style('opacity', 1);
+				
+				selectedCircle.moveToBack();
+				tip.hide(d);
+					
+			});
+
 		}
 
 		// Resize function which makes the graph responsive
@@ -609,6 +599,19 @@
 		    view.y += center[1] - l[1];
 
 		    interpolateZoom([view.x, view.y], view.k);
+		}
+
+		// Tooltip creation (uses the .tip() function from the d3-tip js library)
+		function createToolTip(){
+			tip = d3.tip()
+			    .attr('class', 'd3-tip')
+			    .offset([-10, 0])
+			    .html(function(d) {
+					return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
+					     "<div><span>Artist Location:</span> <span class='tooltipContents'>" + d['Location']+ "</span></div>";
+				});
+
+			container.call(tip);
 		}
 
 		/* **************************************************** *
