@@ -9,7 +9,7 @@
 
 	<style>
 		#chart {
-		  background-color: #fff; 
+		  background-color: #D5E3FF; 
 		  width: 95%;
 		  height: 95%;
 		  min-width: 400px;
@@ -25,7 +25,7 @@
 		}
 
 		#chart g.map g.countries path {
-			fill: rgb(255, 255, 217);
+			/*fill: #FFF;*/
 			stroke: #000;
 			stroke-width: 0.4px;
 		}
@@ -282,7 +282,6 @@
 			});*/
 			d3.json('countries.geo.json', function(err, geojson) {
 				countryData = geojson;
-				updateCountries();
 
 				d3.csv('billboard_df-final.csv', function(error, data) {
 					if(error){ 
@@ -305,11 +304,27 @@
 								'Latitude': +d['latitude']
 							},
 							'Num': +d['Num'],
-							'Year': +d['Year']
+							'Year': +d['Year'],
+							'Country': d['country']
 						};
 						dataset[d['Year']].push(obj);
 					}
 
+					// By looking at the data we have noticed that the country with the largest number of songs is the USA
+					maxTrackByCountry = 0;
+					for(var year in dataset){
+						for(var obj in dataset[year]){
+							if(dataset[year][obj]['Country'] == 'United States of America'){
+								maxTrackByCountry++;
+							}
+						}
+					}
+
+					countryColorScale = d3.scale.linear().domain([0, 1, 50, 200, 750, 2000, maxTrackByCountry])
+														.range(["#FFF", "#FFFFD9","#E68364", "#D24D57", "#C3272B", "#9D2933", "#72171a"]);
+					
+					// Countries creation
+					updateCountries();
 					// Tooltip creation			
 					createToolTip();
 					// Artist cities circles creation	
@@ -326,12 +341,13 @@
 							  var newYear = Math.ceil(date.getFullYear()); 
 							  if (newYear != currentYear) {
 							    currentYear = newYear;
-							    d3.select('svg g.map g.cities').selectAll("path").remove(); 
+							    console.log(d3.select('svg g.map g.cities').selectAll('circle'));
+							    d3.select('svg g.map g.cities').selectAll('circle').remove(); 
 							    updateArtistCities();
 							  }
 							})
 							.playButton(true) 
-							.playbackRate(0.15)
+							.playbackRate(0.08)
 							.loop(false)
 					    );
 
@@ -356,9 +372,13 @@
 				.enter()
 				.append('path')
 				.attr('class', function(d){
-					return d.properties.name;
+					return camelize(d.properties.name);
 				})
-				.attr('d', geoGenerator);
+				.attr('data-track-count', 0)
+				.attr('d', geoGenerator)
+				.attr("fill", function(){
+			    	return countryColorScale(+d3.select(this).attr('data-track-count'));
+			    });
 		}
 
 		function updateArtistCities(){
@@ -369,7 +389,6 @@
 						.selectAll('circle')
 						.data(dataset[currentYear]);
 
-			var maxItems = 0;
 			u.enter()
 				.append('circle')
 				.attr('data-number', function(d) {
@@ -378,9 +397,6 @@
 						return (d['Coordinates']['Longitude'] == x['Coordinates']['Longitude']) && (d['Coordinates']['Latitude'] == x['Coordinates']['Latitude']);
 					});
 
-					if(filteredCircles[0].length >= maxItems){
-						maxItems = filteredCircles[0].length;
-					}
 					return filteredCircles[0].length;
 				});
 			
@@ -402,26 +418,46 @@
 			    		return 0;
 			    	}
 			    })
-			    .attr('fill', '#044B94')
-			    .attr('fill-opacity', '0.4');
+			    .attr('fill', function(d){
+			    	// Color the country
+			    	var currentCountryClass = camelize(d['Country']);
+			    	if(currentCountryClass != null && currentCountryClass != ""){
+			    		var currentCountry = d3.select('.' + currentCountryClass);
+			    		currentCountry.attr('data-track-count', function(){
+			    			return +d3.select(this).attr('data-track-count') + 1;
+			    		});
+			    		currentCountry.attr('fill', function(){
+			    			return countryColorScale(+d3.select(this).attr('data-track-count'));
+			    		});
+			    	}
+
+			    	// Color the circle	
+			    	return '#081D58'; //'#044B94'
+			    })
+			    .attr('fill-opacity', '0.4')
+			    .attr('stroke', '#081D58')
+			    .attr('stroke-width', '0.5')
+			    .transition()  //select all the countries and prepare for a transition to new values
+      			.duration(750);
 
 		    u.on('mouseover', function(d) {
 				var selectedCircle = d3.select(this);
-				var allCircles = d3.selectAll('circle');
-
-				selectedCircle.attr('stroke', '#044B94');				
+				var allCircles = d3.selectAll('circle');				
 
 				allCircles.filter(function(x) { return d['Artist(s)'] != x['Artist(s)']; })
 				        .style('opacity', 0.2);	
 
-				tip.show(d);
+				var filteredCircles = allCircles.filter(function(x) {
+						return (d['Coordinates']['Longitude'] == x['Coordinates']['Longitude']) && (d['Coordinates']['Latitude'] == x['Coordinates']['Latitude']);
+					});
 
-				selectedCircle.moveToFront();		
+				selectedCircle.moveToFront();
+				tip.show(filteredCircles[0], d);
+		
 			});
 
 			u.on('mouseout', function(d) {
 				var selectedCircle = d3.select(this);
-				selectedCircle.attr('stroke', '');
 				
 				var allCircles = d3.selectAll('circle')
 								.style('opacity', 1);
@@ -431,10 +467,22 @@
 					
 			});
 
+			// Color the country 
+			/*var c = d3.select('svg g.map g.countries')
+						.selectAll('path')
+						.data(dataset[currentYear]);
+
+			c.attr('data-track-count', function(d){
+					if(d['Country'] == d3.select(this).attr('class')){
+						return +d3.select(this).attr('data-track-count') + 1;
+					}
+				});*/
+
+
 		}
 
 		// Resize function which makes the graph responsive
-		function resize() {
+		/*function resize() {
 			// Find the new window dimensions 
 		    var width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
 		    	height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
@@ -492,31 +540,8 @@
 				})
 				.attr('cy', function(d) {return yScale(d['Years of presence']);})
 				.attr('r', radius);
-		}
+		}*/
 
-		function clearGraph(){
-			clearGrids();
-			clearPatterns();
-			clearCircles();
-			clearAxisTitles();
-		}
-
-		function clearGrids(){
-			d3.select('.grids').selectAll('g').remove();
-		}
-
-		function clearPatterns(){
-			d3.select('.defs').selectAll('pattern').remove();
-		}
-
-		function clearCircles(){
-			d3.select('.circles').selectAll('circle').remove();
-		}
-
-		function clearAxisTitles(){
-			d3.select('.x.axis').selectAll('text').remove();
-			d3.select('.y.axis').selectAll('text').remove();
-		}
 
 		// Function which takes a string and return its camelized version (useful for DOM elements ID)
 		function camelize(str) {
@@ -544,12 +569,6 @@
 			}); 
 		};
 
-		// This is a functions that scrolls to #{blah}link
-		function goToByScroll(id){
-		    // Scroll
-		    $('html,body').animate({
-		        scrollTop: $("#"+id).offset().top}, 'slow');
-		}
 
 		// Zoom functions
 		function zoomed() {
@@ -606,9 +625,45 @@
 			tip = d3.tip()
 			    .attr('class', 'd3-tip')
 			    .offset([-10, 0])
-			    .html(function(d) {
-					return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
-					     "<div><span>Artist Location:</span> <span class='tooltipContents'>" + d['Location']+ "</span></div>";
+			    .html(function(filteredCircles, d) {
+			    	var tooltipString = "<div><span class='tooltipTitle'>" + d['Location'] + "</span></div>";
+
+			    	var artists = [];
+			    	var trackCount;
+			    	var artistObj;
+			    	for(var i = 0; i < filteredCircles.length; i++){
+			    		var artistName = filteredCircles[i]['__data__']['Artist(s)'];
+			    		if(artists.length == 0){
+							artistObj = {
+				    			"name": artistName,
+				    			"count": 1
+			    			};
+			    			artists.push(artistObj);
+			    		} else {
+			    			var inArray = false;
+				    		for(var j = 0; j < artists.length; j++){
+				    			if(artistName == artists[j].name){
+				    				artists[j].count += 1;
+				    				inArray = true;
+				    				break;
+				    			} 
+				    		}
+				    		if(!inArray){
+			    				artistObj = {
+				    				"name": artistName,
+				    				"count": 1
+			    				};
+				    			artists.push(artistObj);
+				    		}	
+			    		}	
+			    	}
+
+					for(var k = 0; k < artists.length; k++){
+						tooltipString += "<div><span>Artist:</span> <span class='tooltipContents'>" + artists[k].name + " x" +  artists[k].count + "</span></div>";
+					}
+		    		
+					return tooltipString;
+					     
 				});
 
 			container.call(tip);
@@ -654,6 +709,7 @@
 		} */
 
 		var countryData, cityData;
+		var maxTrackByCountry = 0;
 
 		var startYear = 1960;
 		var endYear = 2015;
@@ -671,6 +727,7 @@
 		var xScale = null;
 		var yScale = null;
 		var radiusScale = null;
+		var countryColorScale = null;
 
 		// Tooltip
 		var tip = null;
