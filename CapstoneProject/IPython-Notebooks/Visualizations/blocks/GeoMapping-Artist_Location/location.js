@@ -97,6 +97,8 @@
 			    );
 
 			callZoom();
+
+
 		});
 	});
 
@@ -226,6 +228,9 @@ function updateArtistCities(){
 			});
 
 		selectedCircle.moveToFront();
+		tip.offset(function() {
+		  return [selectedCircle.node().getBBox().height / 2 - 15, 0]
+		});
 		tip.show(filteredCircles[0], d);
 
 	});
