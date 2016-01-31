@@ -340,9 +340,14 @@
 					        .on('change', function(date) { 
 							  var newYear = Math.ceil(date.getFullYear()); 
 							  if (newYear != currentYear) {
+							  	if(newYear >= currentYear){
+							  		previousYear = newYear - 1;
+							  	} else {
+									previousYear = currentYear;
+							  	}							  	
 							    currentYear = newYear;
-							    console.log(d3.select('svg g.map g.cities').selectAll('circle'));
 							    d3.select('svg g.map g.cities').selectAll('circle').remove(); 
+							    updateCountryCount();
 							    updateArtistCities();
 							  }
 							})
@@ -372,7 +377,9 @@
 				.enter()
 				.append('path')
 				.attr('class', function(d){
-					return camelize(d.properties.name);
+					var countryName = camelize(d.properties.name); 
+					countryDict[countryName] = {};
+					return countryName;
 				})
 				.attr('data-track-count', 0)
 				.attr('d', geoGenerator)
@@ -380,6 +387,33 @@
 			    	return countryColorScale(+d3.select(this).attr('data-track-count'));
 			    });
 		}
+
+		function updateCountryCount(){
+			d3.select('svg g.map g.countries')
+				.selectAll('path')
+				.each(function(){
+					var currentCountry = d3.select(this);
+					var currentCountryClass = currentCountry.attr('class');
+					if(previousYear > currentYear){
+						currentCountry.attr('data-track-count', function(){
+			    			if(typeof countryDict[currentCountryClass] !== "undefined"){
+			    				if(countryDict[currentCountryClass][currentYear] == 0){
+			    					currentCountry.attr('fill', function(){
+						    			return countryColorScale(0);
+						    		});
+			    				}
+			    				return countryDict[currentCountryClass][currentYear];
+			    			} else {
+			    				return 0;
+			    			}
+			    		});
+			    		
+					} else {
+						countryDict[currentCountryClass][previousYear] = +d3.select(this).attr('data-track-count');
+					}
+				})
+		}
+
 
 		function updateArtistCities(){
 			d3.select("div.yearTitle h3").html("Billboard HOT 100 - Artists location in " + currentYear);
@@ -423,9 +457,11 @@
 			    	var currentCountryClass = camelize(d['Country']);
 			    	if(currentCountryClass != null && currentCountryClass != ""){
 			    		var currentCountry = d3.select('.' + currentCountryClass);
-			    		currentCountry.attr('data-track-count', function(){
-			    			return +d3.select(this).attr('data-track-count') + 1;
-			    		});
+			    		if(currentYear >= previousYear){
+				    		currentCountry.attr('data-track-count', function(){
+				    			return +d3.select(this).attr('data-track-count') + 1;
+				    		});
+				    	}
 			    		currentCountry.attr('fill', function(){
 			    			return countryColorScale(+d3.select(this).attr('data-track-count'));
 			    		});
@@ -583,7 +619,7 @@
 		    return d3.transition().duration(350).tween("zoom", function () {
 		        var iTranslate = d3.interpolate(zoom.translate(), translate),
 		            iScale = d3.interpolate(zoom.scale(), scale);
-		        return function (t) {
+		        return function(t) {
 		            zoom
 		                .scale(iScale(t))
 		                .translate(iTranslate(t));
@@ -690,30 +726,13 @@
 				    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 				    .call(zoom);
 
-		// Radius details
-		/*var radiusValues = {'Small': 12, 'Medium': 17, 'Big': 30};
-		var hoveredRadiusValues = {'Small': 22, 'Medium': 30, 'Big': 40};
-
-		var radius = null;
-		var hoveredRadius = null;
-		if(((width + margin.left + margin.right) >= 1500) && ((height + margin.top + margin.bottom) >= 700)){
-			radius = radiusValues['Big'];
-			hoveredRadius = hoveredRadiusValues['Big'];
-		} else if (((width + margin.left + margin.right) <= 500) && ((height + margin.top + margin.bottom) <= 400)){
-			radius = radiusValues['Small'];
-			hoveredRadius = hoveredRadiusValues['Small'];
-		} 
-		else {
-			radius = radiusValues['Medium'];
-			hoveredRadius = hoveredRadiusValues['Medium'];
-		} */
-
 		var countryData, cityData;
 		var maxTrackByCountry = 0;
 
 		var startYear = 1960;
 		var endYear = 2015;
 		var currentYear = startYear;
+		var previousYear = null;
 
 		// Projection function
 		var projection = d3.geo.mercator()
@@ -742,6 +761,7 @@
 
 		// Dataset init and chart creation
 		var dataset = [];
+		var countryDict = {};
 		createChart();
 	</script>	
 </body>
