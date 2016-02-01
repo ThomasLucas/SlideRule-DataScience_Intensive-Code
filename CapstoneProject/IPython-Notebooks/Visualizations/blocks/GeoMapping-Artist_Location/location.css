@@ -85,6 +85,10 @@ circle:hover {
 	cursor: default;
 }
 
+table#importantDatesTable tbody tr:hover {
+  cursor: pointer;
+}
+
 /*** D3 ToolTip style ***/
 
 .d3-tip {

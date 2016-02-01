@@ -70,38 +70,48 @@
 			// Legend creation
 			createLegend();
 
+			slider = chroniton().domain([new Date(startYear, 1, 1), new Date(endYear, 1, 1)]) 
+							        .labelFormat(function(date) {
+							          return Math.ceil(date.getFullYear())  
+							        })
+							        .width(600) 
+							        .on('change', function(date) { 
+									  var newYear = Math.ceil(date.getFullYear()); 
+									  if (newYear != currentYear) {
+									  	if(newYear >= currentYear){
+									  		previousYear = newYear - 1;
+									  	} else {
+											previousYear = currentYear;
+									  	}							  	
+									    currentYear = newYear;
+									    d3.select('svg g.map g.cities').selectAll('.cities circle').remove(); 
+									    updateCountryCount();
+									    updateArtistCities();
+									  }
+									})
+									.playButton(true) 
+									.playbackRate(0.08)
+									.loop(false);
+
 			d3.select("#slider") 
-			    .call(chroniton()  
-			        .domain([new Date(startYear, 1, 1), new Date(endYear, 1, 1)]) 
-			        .labelFormat(function(date) {
-			          return Math.ceil(date.getFullYear())  
-			        })
-			        .width(600) 
-			        .on('change', function(date) { 
-					  var newYear = Math.ceil(date.getFullYear()); 
-					  if (newYear != currentYear) {
-					  	if(newYear >= currentYear){
-					  		previousYear = newYear - 1;
-					  	} else {
-							previousYear = currentYear;
-					  	}							  	
-					    currentYear = newYear;
-					    d3.select('svg g.map g.cities').selectAll('.cities circle').remove(); 
-					    updateCountryCount();
-					    updateArtistCities();
-					  }
-					})
-					.playButton(true) 
-					.playbackRate(0.08)
-					.loop(false)
-			    );
+			    .call(slider);
 
 			callZoom();
 
+			handleImportantDatesTableClick();
 
 		});
 	});
 
+}
+
+function handleImportantDatesTableClick(){
+	d3.select('#importantDatesTable')
+		.selectAll('tr')
+		.on('click', function(){
+			var selectedYear = d3.select(this).attr('data-year');
+			slider.setValue(new Date(selectedYear), { duration: 5000, ease: 'linear' });
+		});
 }
 
 function callZoom(){
@@ -229,7 +239,12 @@ function updateArtistCities(){
 
 		selectedCircle.moveToFront();
 		tip.offset(function() {
-		  return [selectedCircle.node().getBBox().height / 2 - 15, 0]
+			var currentPosition = { x: selectedCircle.attr('cx'), y: selectedCircle.attr('cy'), r: selectedCircle.attr('r') };
+
+			translate0 = [(currentPosition.x - zoom.translate()[0]) / zoom.scale(), (currentPosition.y - zoom.translate()[1]) / zoom.scale()];
+			l = [translate0[0] * zoom.scale() + zoom.translate()[0], translate0[1] * zoom.scale() + zoom.translate()[1]];
+		  	return [currentPosition.x - l[0] - 5, 
+		  				currentPosition.y - l[1]];
 		});
 		tip.show(filteredCircles[0], d);
 
@@ -538,6 +553,9 @@ var gridYAxis = null;
 // Axis details
 var xAxisValues = {'Small': '# of songs', 'Medium': '# of songs in the Billboard Hot 100 (year end)'};
 var yAxisValues = {'Small': '# of years', 'Medium': '# of years of presence in the Billboard Hot 100 (year end)'};
+
+// Slider 
+var slider;
 
 // Dataset init and chart creation
 var dataset = [];
