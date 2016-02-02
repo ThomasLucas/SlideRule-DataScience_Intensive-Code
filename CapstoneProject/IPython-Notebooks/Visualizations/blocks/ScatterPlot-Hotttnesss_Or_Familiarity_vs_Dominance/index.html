@@ -4,7 +4,7 @@
 	<title>Billboard Hot 100: Artist Hotttness or Familiarity vs. Artist Dominance</title>
 
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-
+	<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/6.0.13/css/bootstrap-slider.min.css">
 	<link rel="stylesheet" type="text/css" href="dominance.css">
 
 </head>
@@ -43,7 +43,14 @@
 		</svg>
 	</div>
 	
-	<div class='container'>
+	<div class='container bottom-buffer'>
+		<div class="row">
+			<div class="col-md-8 col-sm-8 col-md-offset-2 col-sm-offset-2">
+				<span class="slider-label">1960</span> 
+				<input id="dateRangeSlider" type="text" value="" data-slider-min="1960" data-slider-max="2015" data-slider-step="1" data-slider-value="[1960, 2015]"/> 
+				<span class="slider-label">2015</span> 
+			</div>
+		</div>
 		<div class='row'>
 			<div class='col-md-12'>
 				<div class='bs-callout bs-callout-info artistDetails' id='artistDetails'>
@@ -89,6 +96,7 @@
 	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 	<script src="https://cdn.rawgit.com/JMPerez/spotify-web-api-js/master/src/spotify-web-api.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/6.0.13/bootstrap-slider.min.js"></script>
 	<script src="dominance.js"></script>
 		
 </body>

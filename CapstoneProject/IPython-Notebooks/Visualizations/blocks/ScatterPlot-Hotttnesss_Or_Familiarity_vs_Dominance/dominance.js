@@ -21,20 +21,79 @@
 			throw error;
 		}
 
-		dataset = data.map(function(d, index) { 
-			return {
-				'Artist(s)': d['Artist(s)'],
-				'Counts': +d['Counts'],
-				'Rank': +d['Rank'],
-				'Years of presence': +d['Years of presence'],
-				'Image URL': d['Image URL'],
-				'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']'),
-				'Familiarity': +d['familiarity'],
-				'Hotttnesss': +d['hotttnesss'],
-				'Dominance Max': JSON.parse(d['Dominance Max'])
-			};
+		// V1
+		/*dataset = data.map(function(d, index) { 
+			for(var i = dateRange[0]; i <= dateRange[1]; i++){
+				if(d[i] > 0){
+					return {
+						'Artist(s)': d['Artist(s)'],
+						'Counts': +d['Counts'],
+						'Rank': +d['Rank'],
+						'Years of presence': +d['Years of presence'],
+						'Image URL': d['Image URL'],
+						'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']'),
+						'Familiarity': +d['familiarity'],
+						'Hotttnesss': +d['hotttnesss'],
+						'Dominance Max': JSON.parse(d['Dominance Max'])
+					};
+				}
+				else {
+					continue;
+				}
+			}
+			return null;	
 		});
 		
+		var datasetTemp = [];
+		for(var i = 0; i < dataset.length; i++){
+			if(dataset[i] !== null){
+				datasetTemp.push(dataset[i]);
+			}
+		}
+		dataset = datasetTemp;*/
+
+		// V2
+		dataset = data.map(function(d, index) { 
+			var dominanceAsJSON = JSON.parse(d['Dominance Max']);
+			var dominanceYearsArray = dominanceAsJSON.years;
+
+			for(var i = 0; i < dominanceYearsArray.length; i++){
+				var dominanceYearsArraySplittedArray = dominanceYearsArray[i].split('Dominance ');
+				var dominanceStartYear = null;
+				var dominanceEndYear = null;
+				if(typeof dominanceYearsArraySplittedArray[1] !== "undefined"){
+					dominanceStartYear = dominanceYearsArraySplittedArray[1].split(' - ')[0];
+					dominanceEndYear = dominanceYearsArraySplittedArray[1].split(' - ')[1];
+				}
+				
+				if(dateRange[0] <= dominanceStartYear && dateRange[1] >= dominanceEndYear ){
+					return {
+						'Artist(s)': d['Artist(s)'],
+						'Counts': +d['Counts'],
+						'Rank': +d['Rank'],
+						'Years of presence': +d['Years of presence'],
+						'Image URL': d['Image URL'],
+						'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']'),
+						'Familiarity': +d['familiarity'],
+						'Hotttnesss': +d['hotttnesss'],
+						'Dominance Max': JSON.parse(d['Dominance Max'])
+					};
+				}
+				else {
+					continue;
+				}
+			}
+			return null;	
+		});
+		
+		var datasetTemp = [];
+		for(var i = 0; i < dataset.length; i++){
+			if(dataset[i] !== null){
+				datasetTemp.push(dataset[i]);
+			}
+		}
+		dataset = datasetTemp;
+
 		dataset.sort(function(a,b) {
 			if(a['Dominance Max'].value > b['Dominance Max'].value){ 
 				return -1;
@@ -55,7 +114,7 @@
 			}
 		});
 
-		dataset = dataset.slice(0, nbOfArtists + 1)
+		dataset = dataset.slice(0, nbOfArtists + 1);
 
 		// Scales
 		var xMax = d3.max(dataset, function(d) { return d[valueToDisplay]; });
@@ -358,7 +417,7 @@ function createToolTip(){
 			return "<div><span class='tooltipTitle'>" + d['Artist(s)']+ "</span></div>" +
 			      "<div><span>" + valueToDisplay + ":</span> <span class='tooltipContents'>" + (d[valueToDisplay] * 100).toFixed(2) + "%</span></div>" +
 			     "<div><span>Dominance Max:</span> <span class='tooltipContents'>" + (d['Dominance Max'].value * 100).toFixed(2) + "%</span></div>" +
-			     "<div><span>Year:</span> <span class='tooltipContents'>" + dominanceYearPrint + "</span></div>";
+			     "<div><span>Years:</span> <span class='tooltipContents'>" + dominanceYearPrint + "</span></div>";
 		});
 
 	container.call(tip);
@@ -577,9 +636,20 @@ d3.select('.close').on('click', function(){
 	d3.select('.artistDetails').style('display', 'none'); 
 });
 
+// Slider 
+var sliderDateRange = new Slider('#dateRangeSlider');
+var dateRange = sliderDateRange.getValue();
+
+sliderDateRange.on('slideStop', function(){
+	dateRange = sliderDateRange.getValue();
+	clearGraph();
+	createChart();
+});
+
 // Instantiate Spotify wrapper
 var spotifyApi = new SpotifyWebApi();
 
 // Dataset init and chart creation
 var dataset = [];
 createChart();
+
