@@ -347,6 +347,7 @@ function updateCircles(dataset) {
 	});
 }
 
+
 // Axis label creation
 function createAxesLabels() {
 	container.select('.x.axis')
@@ -425,6 +426,11 @@ function createToolTip(){
 
 // Resize function which makes the graph responsive
 function resize() {
+	valueToDisplay = d3.select('#hotttnessOrFamiliaritySelector')
+						.selectAll('.active')
+						.attr('data-val');
+	setXValues(valueToDisplay);
+
 	// Find the new window dimensions 
     var width = parseInt(d3.select('#chart').style('width')) - margin.left - margin.right,
     	height = parseInt(d3.select('#chart').style('height')) - margin.top - margin.bottom;
@@ -471,6 +477,8 @@ function resize() {
 	    .text(yAxisText);
 
 	container.selectAll('circle')
+		.transition()
+		.duration(1000)
 		.attr('cx', function(d) {
 			if(d3.select(this).classed('multipleArtists')){
 				var x_jitter = Math.pow(-1, jitterIndex) * jitter - Math.pow(-1, jitterIndex) * (jitter / 2);
@@ -599,9 +607,9 @@ var gridYAxis = null;
 var formatPercent = d3.format(".0%");
 
 // Axis details
-	var valueToDisplay = d3.select('#hotttnessOrFamiliaritySelector')
-			.selectAll('.active')
-			.attr('data-val');
+var valueToDisplay = d3.select('#hotttnessOrFamiliaritySelector')
+						.selectAll('.active')
+						.attr('data-val');
 
 var xAxisValues;
 var yAxisValues = {'Small': 'Artist Dominance', 'Medium': 'Artist Dominance'};
@@ -614,8 +622,7 @@ grouppedButtonsHotttnessFamiliarity.on('click', function(){
 	grouppedButtonsHotttnessFamiliarity.classed('active', false);
 	
 	d3.select(this).classed('active', true);
-	clearGraph();
-	createChart();
+	resize();
 });
 
 // Event handlers for the button-group
