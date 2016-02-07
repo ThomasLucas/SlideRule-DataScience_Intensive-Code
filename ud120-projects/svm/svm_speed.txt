@@ -1,0 +1,50 @@
+#### SVM ####
+
+— Linear Kernel
+
+Full dataset:
+
+training time: 398.104 s
+predicting time: 48.492 s
+accuracy: 0.984072810011
+
+1% of the dataset:
+
+training time: 0.169 s
+predicting time: 1.734 s
+accuracy: 0.884527872582
+
+- RBF Kernel
+
+1% of the dataset:
+
+Default parameters
+training time: 0.491 s
+predicting time: 4.545 s
+accuracy: 0.616040955631
+
+C = 10
+training time: 0.188 s
+predicting time: 2.544 s
+accuracy: 0.616040955631
+
+C = 100
+training time: 0.203 s
+predicting time: 2.09 s
+accuracy: 0.616040955631
+
+C = 1000
+training time: 0.175 s
+predicting time: 1.845 s
+accuracy: 0.821387940842
+
+C = 10000
+training time: 0.184 s
+predicting time: 1.705 s
+accuracy: 0.892491467577
+
+Full dataset: 
+
+training time: 215.813 s
+predicting time: 23.122 s
+accuracy: 0.990898748578
