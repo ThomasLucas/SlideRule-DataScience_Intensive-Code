@@ -1,0 +1,5 @@
+Naive Bayes:
+
+training time: 6.123 s
+testing time: 1.033 s
+accuracy: 0.973833902162
