@@ -1,0 +1,11 @@
+Decision Trees:
+
+Default:
+training time: 117.447 s
+predicting time: 0.058 s
+accuracy: 0.977815699659
+
+1% of the features:
+training time: 10.545 s
+predicting time: 0.006 s
+accuracy: 0.967007963595
