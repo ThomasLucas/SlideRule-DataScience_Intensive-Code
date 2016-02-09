@@ -20,39 +20,6 @@
 		if(error){ 
 			throw error;
 		}
-
-		// V1
-		/*dataset = data.map(function(d, index) { 
-			for(var i = dateRange[0]; i <= dateRange[1]; i++){
-				if(d[i] > 0){
-					return {
-						'Artist(s)': d['Artist(s)'],
-						'Counts': +d['Counts'],
-						'Rank': +d['Rank'],
-						'Years of presence': +d['Years of presence'],
-						'Image URL': d['Image URL'],
-						'List of songs': JSON.parse('[' + d['List of songs'].split(',-,').toString() + ']'),
-						'Familiarity': +d['familiarity'],
-						'Hotttnesss': +d['hotttnesss'],
-						'Dominance Max': JSON.parse(d['Dominance Max'])
-					};
-				}
-				else {
-					continue;
-				}
-			}
-			return null;	
-		});
-		
-		var datasetTemp = [];
-		for(var i = 0; i < dataset.length; i++){
-			if(dataset[i] !== null){
-				datasetTemp.push(dataset[i]);
-			}
-		}
-		dataset = datasetTemp;*/
-
-		// V2
 		dataset = data.map(function(d, index) { 
 			var dominanceAsJSON = JSON.parse(d['Dominance Max']);
 			var dominanceYearsArray = dominanceAsJSON.years;
@@ -457,10 +424,15 @@ function resize() {
 	var jitterIndex = 0;
 
 	// Update the range of the scales with new width/height
-	xScale.range([0, width]);
+	var xMax = d3.max(dataset, function(d) { return d[valueToDisplay]; });
+	var xMin = d3.min(dataset, function(d) { return d[valueToDisplay]; });
+	xScale = d3.scale.linear().domain([xMin - 0.02, xMax + 0.02]).range([0, width]);
 	yScale.range([height, 0]);
 
 	// Update all the existing elements (gridlines, axis text, circles)
+	gridXAxis.scale(xScale);
+	gridYAxis.scale(yScale);
+
 	container.select('#gridY')
 			.attr('transform', 'translate(0, '+height+')')
 			.call(gridXAxis.tickSize(-height - 15, 0, 0));
