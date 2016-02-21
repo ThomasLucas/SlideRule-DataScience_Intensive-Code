@@ -52,10 +52,8 @@ for name, from_person in [("sara", from_sara), ("chris", from_chris)]:
 
         ### use str.replace() to remove any instances of the words
         ### ["sara", "shackleton", "chris", "germani"]
-        email_text = email_text.replace("sara", "")
-        email_text = email_text.replace("shackleton", "")
-        email_text = email_text.replace("chris", "")
-        email_text = email_text.replace("germani", "")
+        for word_to_replace in ["sara", "shackleton", "chris", "germani", "sshacklensf", "cgermannsf"]:
+            email_text = email_text.replace(word_to_replace, "")
 
         ### append the text to word_data
         word_data.append(email_text)
