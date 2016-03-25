@@ -995,7 +995,7 @@ def get_most_dominant_artist_per_years(unique_artist_df, start_year, end_year, i
     return entries_count_by_artist
 
 
-def get_Track_Country_Of_Origin(billboard_df_final):
+def getTrackCountryOfOrigin(billboard_df_final):
     geolocator = Nominatim()
     track_state_of_origin = []
     track_country_of_origin = []
@@ -1026,15 +1026,13 @@ def get_Track_Country_Of_Origin(billboard_df_final):
 
     return [track_country_of_origin, track_state_of_origin]
 
-def add_Track_Country_Of_Origin_To_DF(billboard_df_final):
-    country_and_state_array = get_Track_Country_Of_Origin(billboard_df_final)
+def addTrackCountryOfOriginToDF(billboard_df_final):
+    country_and_state_array = getTrackCountryOfOrigin(billboard_df_final)
     country_and_state_dict = {"country": country_and_state_array[0], "state": country_and_state_array[1]}
     track_country_and_state_of_origin_df = pd.DataFrame(country_and_state_dict, columns = ["country", "state"])
     billboard_df_final_new = pd.concat([billboard_df_final, track_country_and_state_of_origin_df], axis=1)
 
     billboard_df_final_new.to_csv('CSV_data/billboard_df_final_new.csv', sep=',')
-    del billboard_df_final_new['Unnamed: 0']
-    billboard_df_final_new.fillna('')
     return billboard_df_final_new
 
 
